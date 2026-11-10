@@ -76,6 +76,31 @@ router.get(
     },
   ),
 );
+// -------------------------------------------------- COVER IMAGES --------------------------------------------------- //
+router.patch(
+  "/cover-images",
+  middleware.authentication(),
+  middleware.fileUploadMiddleware({
+    customPath: "User/Covers",
+    multerMiddleware: fileUpload.createUploader().array("attachments", 5),
+    validation: fileUpload.fileValidation.image,
+  }),
+  middleware.validation(validators.coverImages),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const images = await us.coverImages({
+        user: req.user,
+        files: req.validate.files,
+      });
+
+      return { message: "success.coverImagesUpdated", data: images };
+    },
+  ),
+);
 // -------------------------------------------------- PROFILE IMAGE --------------------------------------------------- //
 router.patch(
   "/profile-image",
@@ -83,7 +108,7 @@ router.patch(
   middleware.fileUploadMiddleware({
     isRequired: true,
     customPath: "User",
-    multerMiddleware: fileUpload.createUploader({}).single("attachment"),
+    multerMiddleware: fileUpload.createUploader().single("attachment"),
     validation: fileUpload.fileValidation.image,
   }),
   middleware.validation(validators.profileImage),
@@ -99,6 +124,22 @@ router.patch(
       });
 
       return { message: "success.profileImageUpdated", data: image };
+    },
+  ),
+);
+// -------------------------------------------------- DELETE PROFILE IMAGE --------------------------------------------------- //
+router.delete(
+  "/profile-image",
+  middleware.authentication(),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      await us.deleteProfileImage({ user: req.user });
+
+      return { message: "success.profileImageDeleted" };
     },
   ),
 );

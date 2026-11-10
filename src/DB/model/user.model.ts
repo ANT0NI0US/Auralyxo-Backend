@@ -1,5 +1,6 @@
 import mongoose, { HydratedDocument } from "mongoose";
-import { enums, exceptions, itf, security } from "../../common";
+import { enums, events, exceptions, itf, security } from "../../common";
+import configService from "../../config.service";
 
 const numericValues = (e: object): number[] =>
   Object.values(e).filter((v): v is number => typeof v === "number");
@@ -44,7 +45,7 @@ const userSchema = new mongoose.Schema<itf.IUser>(
     DOB: Date,
     confirmEmail: Date,
     image: String,
-    coverImage: [String],
+    coverImages: [String],
     gender: {
       type: Number,
       enum: {
@@ -70,7 +71,7 @@ const userSchema = new mongoose.Schema<itf.IUser>(
       default: enums.ProviderEnum.SYSTEM,
     },
     changeCredentialsTime: Date,
-    twoStepVerification: Boolean,
+    twoStepVerification: { type: Boolean, default: false },
     status: {
       type: Number,
       enum: {
@@ -125,6 +126,24 @@ userSchema.pre("save", async function (this: HUser & { wasNew: boolean }) {
   }
   if (this.isModified("phone")) {
     this.phone = await security.encrypt(this.phone as string);
+  }
+});
+
+userSchema.post("save", function (doc) {
+  if ((this as HUser & { wasNew: boolean }).wasNew) {
+    events.emailEvent.emit(enums.EventsEnum.SEND_EMAIL, {
+      recipient: { to: configService.APP_EMAIL },
+      subject: enums.EmailSubjectEnum.NEW_USER_REGISTERED,
+      data: {
+        lang: enums.LanguageEnum.EN,
+        user: {
+          username: this.username,
+          email: this.email,
+          provider: this.provider,
+          createdAt: this.createdAt,
+        },
+      },
+    });
   }
 });
 

@@ -5,15 +5,15 @@ export class CacheService {
   private readonly client: RedisClientType;
   constructor() {
     this.client = createClient({ url: configService.DB_REDIS_URI });
+    // without this listener a dropped connection crashes the whole process
+    this.client.on("error", (error) => {
+      console.log(`Redis error: ${error.message}`);
+    });
   }
 
   async connectRedis() {
-    try {
-      await this.client.connect();
-      console.log(`Redis connection stablish successfully`);
-    } catch (error) {
-      console.log(`Failed to stablish Redis connection`);
-    }
+    await this.client.connect();
+    console.log(`Redis connection stablish successfully`);
   }
 
   async set({

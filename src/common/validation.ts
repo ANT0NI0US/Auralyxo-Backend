@@ -75,9 +75,10 @@ export const generalValidationFields = (lang: enums.LanguageEnum) => ({
       originalname: z.string(),
       encoding: z.string(),
       mimetype: z.string(),
-      buffer: z.instanceof(Buffer),
       size: z.number(),
       path: z.string(),
+      // only exist with the memory storage
+      buffer: z.instanceof(Buffer).optional(),
       // only exist with the disk storage
       destination: z.string().optional(),
       filename: z.string().optional(),

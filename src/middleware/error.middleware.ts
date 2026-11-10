@@ -52,6 +52,11 @@ export const globalErrorHandling = (
     status = 400;
     message = "error.invalidId";
   }
+  // express.json() could not parse the request body (e.g. a missing quote or bracket)
+  else if ("type" in error && error.type === "entity.parse.failed") {
+    status = 400;
+    message = "error.invalidJson";
+  }
 
   const isProduction = configService.NODE_ENV == "production";
   const defaultErrorMessage: TranslationKey = "error.server";

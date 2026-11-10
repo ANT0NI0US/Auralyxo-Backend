@@ -1,56 +1,16 @@
+import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
 import { translate } from "./common";
 import { BootstrapDB } from "./DB/connection.db";
 import * as middleware from "./middleware";
 import * as modules from "./modules";
-import cors from "cors";
-
-/*
- * There is another two solutions
-
-? 1)
-import express, {
-  type Application,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
-
-const app: Application = express();
-
-app.all(
-  "/",
-  async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response> => {
-    return res.status(200).json({ message: "Done" });
-  },
-);
-
-? 2)
-import express from "express";
-import type { Application, Request, Response, NextFunction } from "express";
-
-const app: Application = express();
-
-app.all(
-  "/",
-  async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response> => {
-    return res.status(200).json({ message: "Done" });
-  },
-);
-*/
 
 const app: express.Application = express();
 BootstrapDB(app);
 
-app.use(cors(), middleware.language, express.json());
+app.use(cors(), helmet(), morgan("dev"), middleware.language, express.json());
 app.use("/assets", express.static("./assets"));
 
 app.all(
@@ -60,7 +20,9 @@ app.all(
     res: express.Response,
     next: express.NextFunction,
   ): express.Response => {
-    return res.status(200).json({ message: "Done" });
+    return res
+      .status(200)
+      .json({ message: translate(req.lang, "success.welcome") });
   },
 );
 
@@ -71,7 +33,9 @@ app.all(
   "{/*dummy}",
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
     res.status(404).json({
-      message: translate(req.lang, "error.routeNotFound"),
+      message: translate(req.lang, "error.routeNotFound")
+        .replace("{url}", req.originalUrl)
+        .replace("{method}", req.method),
     });
   },
 );

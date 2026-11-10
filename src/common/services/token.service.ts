@@ -53,7 +53,17 @@ export class TokenService {
     token: string;
     secret: Secret;
   }): Promise<tps.TokenPayloadType> {
-    return jwt.verify(token, secret) as tps.TokenPayloadType;
+    try {
+      return jwt.verify(token, secret) as tps.TokenPayloadType;
+    } catch (error: any) {
+      // jwt.verify throws its own errors (no cause.status), so they reached the error handler as 500
+      // expired token → the frontend should call rotate-token
+      if (error.name === "TokenExpiredError") {
+        throw new exceptions.UnauthorizedException("error.tokenExpired");
+      }
+      // wrong signature (forged token / access token sent to rotate-token) or a broken token
+      throw new exceptions.UnauthorizedException("error.invalidToken");
+    }
   }
 
   // GET THE ACCESS AND REFRESH TOKEN SIGNATURE DEPENDS ON THE USER ROLE (USER - ADMIN)
@@ -148,12 +158,21 @@ export class TokenService {
     // hydrate() rebuilds a real document from it without hitting the database.
     const user = cachedUser
       ? models.UserModel.hydrate(cachedUser)
-      : await this.userRepository.findById({
-          id: objectId.toObjectId({ id: payload.sub }),
+      : await this.userRepository.findOne({
+          filter: {
+            _id: objectId.toObjectId({ id: payload.sub }),
+            paranoid: false,
+          },
         });
 
+    // deleted user → his token is useless
     if (!user) {
-      throw new exceptions.NotFoundException("error.invalidUser");
+      throw new exceptions.UnauthorizedException("error.invalidToken");
+    }
+
+    // archived user → same message as login / basic auth
+    if (user.status == enums.AccountStatusEnum.ARCHIVE) {
+      throw new exceptions.ForbiddenException("error.accountArchived");
     }
 
     // cache the user profile in redis for 1 day.
@@ -175,7 +194,7 @@ export class TokenService {
       ? new Date(user.changeCredentialsTime).getTime()
       : 0;
 
-    if (changeCredentialsTime > payload.iat * 1000) {
+    if (Math.floor(changeCredentialsTime / 1000) > payload.iat) {
       throw new exceptions.UnauthorizedException("error.tokenRevoked");
     }
 

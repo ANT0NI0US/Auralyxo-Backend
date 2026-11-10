@@ -41,7 +41,7 @@ export const REFRESH_TOKEN_EXPIRES_IN: number = parseInt(
 
 // GOOGLE ACCOUNT
 export const WEB_CLIENT_IDS: string[] =
-  process.env.WEB_CLIENT_IDS?.split(",") || [];
+  process.env.WEB_CLIENT_IDS?.split(",") ?? [];
 
 // SEND EMAIL
 export const APP_PASSWORD: string = process.env.APP_PASSWORD as string;

@@ -1,30 +1,13 @@
-import { enums, translate, type TranslationKey } from "../../../common";
-import configService from "../../../config.service";
+import { enums, translate } from "../../../../common";
+import configService from "../../../../config.service";
 
-const titleKeyBySubject: Record<enums.EmailSubjectEnum, TranslationKey> = {
-  [enums.EmailSubjectEnum.CONFIRM_EMAIL]: "emailTemplate.confirmEmailTitle",
-  [enums.EmailSubjectEnum.TWO_STEP_VERIFICATION]:
-    "emailTemplate.twoStepVerificationTitle",
-  [enums.EmailSubjectEnum.FORGOT_PASSWORD]: "emailTemplate.forgotPasswordTitle",
-};
-
-const buildOtpEmail = ({
-  lang,
-  subject,
-  code,
-  expiresIn,
-}: {
+export interface IEmailLayout {
   lang: enums.LanguageEnum;
-  subject: enums.EmailSubjectEnum;
-  code: number;
-  expiresIn: number;
-}) => {
+  content: string;
+}
+// header (app name) + footer (social links) are the same in every email, only the content in the middle changes
+export const emailLayout = ({ lang, content }: IEmailLayout) => {
   const dir = lang === enums.LanguageEnum.AR ? "rtl" : "ltr";
-  const title = translate(lang, titleKeyBySubject[subject]);
-  const expiresInText = translate(lang, "emailTemplate.expiresIn").replace(
-    "{minutes}",
-    `<b>${expiresIn}</b>`,
-  );
 
   return `<!DOCTYPE html>
                 <html dir="${dir}">
@@ -43,27 +26,7 @@ const buildOtpEmail = ({
                 <tr>
                 <td>
                 <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;background-color: #fff;">
-                <tr>
-                <td style="padding:40px 40px 0 40px;">
-                <h2 style="margin:0;color:#111827;font-size:22px;">${title}</h2>
-                <p style="margin:12px 0 0 0;color:#6B7280;font-size:14px;">${translate(lang, "emailTemplate.yourOtp")}</p>
-                </td>
-                </tr>
-                <tr>
-                <td style="padding:24px 40px 0 40px;">
-                <p style="margin:0;background-color:#F3F4F6;border-radius:6px;padding:18px 20px;color:#111827;font-size:28px;font-weight:bold;letter-spacing:10px;">${code}</p>
-                </td>
-                </tr>
-                <tr>
-                <td style="padding:20px 40px 0 40px;">
-                <p style="margin:0;color:#374151;font-size:14px;">${expiresInText}</p>
-                </td>
-                </tr>
-                <tr>
-                <td style="padding:16px 40px 40px 40px;">
-                <p style="margin:0;color:#9CA3AF;font-size:13px;">${translate(lang, "emailTemplate.disclaimer")}</p>
-                </td>
-                </tr>
+                ${content}
                 </table>
                 </td>
                 </tr>
@@ -99,14 +62,4 @@ const buildOtpEmail = ({
                 </table>
                 </body>
                 </html>`;
-};
-
-export const emailTemplate = ({
-  subject,
-  data,
-}: {
-  subject: enums.EmailSubjectEnum;
-  data: { lang: enums.LanguageEnum; code: number; expiresIn: number };
-}) => {
-  return buildOtpEmail({ ...data, subject });
 };

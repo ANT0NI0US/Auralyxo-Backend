@@ -53,6 +53,12 @@ export const profileImage = (lang: enums.LanguageEnum) => {
   });
 };
 
+export const coverImages = (lang: enums.LanguageEnum) => {
+  return z.object({
+    files: z.array(generalValidationFields(lang).file).min(1).max(5),
+  });
+};
+
 export const toggleAccountStatus = (lang: enums.LanguageEnum) => {
   return z.object({
     params: z.strictObject({

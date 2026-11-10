@@ -12,4 +12,5 @@ export type ProfileImageDto = z.infer<
 export type ToggleAccountStatusDto = z.infer<
   ReturnType<typeof validators.toggleAccountStatus>
 >;
+export type CoverImagesDto = z.infer<ReturnType<typeof validators.coverImages>>;
 export type DeleteUserDto = z.infer<ReturnType<typeof validators.deleteUser>>;

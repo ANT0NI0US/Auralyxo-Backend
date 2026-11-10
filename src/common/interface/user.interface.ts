@@ -10,7 +10,7 @@ export interface IUser {
   DOB?: Date;
   confirmEmail?: Date;
   image?: string;
-  coverImage?: string[];
+  coverImages?: string[];
   gender: enums.GenderEnum;
   role: enums.RoleEnum;
   provider: enums.ProviderEnum;

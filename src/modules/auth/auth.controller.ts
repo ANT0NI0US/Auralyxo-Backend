@@ -169,7 +169,7 @@ router.patch(
   ),
 );
 // -------------------------------------------------- REQUEST FORGOT PASSWORD CODE ----------------------------------------- //
-router.patch(
+router.post(
   "/request-forgot-password-code",
   middleware.validation(validators.requestForgetPasswordCode),
   middleware.responseFormatter(
@@ -188,7 +188,7 @@ router.patch(
   ),
 );
 // -------------------------------------------------- VERIFY FORGOT PASSWORD CODE ----------------------------------------- //
-router.patch(
+router.post(
   "/verify-forgot-password-code",
   middleware.validation(validators.verifyForgotPasswordCode),
   middleware.responseFormatter(

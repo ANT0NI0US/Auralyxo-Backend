@@ -9,7 +9,7 @@ export const createUploader = ({
 }: {
   maxFileSize?: number;
   storageApproach?: enums.StorageApproachEnum;
-}) => {
+} = {}) => {
   const storage =
     storageApproach == enums.StorageApproachEnum.MEMORY
       ? multer.memoryStorage()

@@ -96,7 +96,7 @@ class UserService {
     const { userId } = params;
     const user = await this.userRepository.findById({
       id: new Types.ObjectId(userId),
-      projection: "firstName lastName image coverImage gender",
+      projection: "firstName lastName image coverImages gender",
     });
 
     if (!user) {
@@ -106,12 +106,55 @@ class UserService {
     return user.toJSON();
   }
 
+  async deleteProfileImage({ user }: { user: models.HUser }) {
+    const profileImageUrl = user.image;
+
+    // after: removes the field from the document (same as a user who never uploaded)
+    user.set("image", undefined);
+    await user.save({ validateModifiedOnly: true });
+
+    await this.cacheService.del({
+      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    });
+
+    if (profileImageUrl) {
+      await fileUpload.deleteLocalFile({ url: profileImageUrl });
+    }
+    return;
+  }
+
+  async coverImages({
+    user,
+    files,
+  }: {
+    user: models.HUser;
+    files: dto.CoverImagesDto["files"];
+  }) {
+    const oldCoverImages = user.coverImages;
+
+    user.coverImages = files.map((ele) => ele.path);
+    await user.save({ validateModifiedOnly: true });
+    await this.cacheService.del({
+      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    });
+
+    if (oldCoverImages?.length) {
+      await Promise.all(
+        oldCoverImages
+          .filter((url) => Boolean(url))
+          .map((url) => fileUpload.deleteLocalFile({ url })),
+      );
+    }
+
+    return user.coverImages;
+  }
+
   async profileImage({
     user,
     file,
   }: {
     user: models.HUser;
-    file: Express.Multer.File;
+    file: dto.ProfileImageDto["file"];
   }) {
     // keep the old image before overwriting it
     const oldImage = user.image;
@@ -214,7 +257,7 @@ class UserService {
     // paranoid: false → we need to find him cause he must be archived before deleting
     const targetUser = await this.userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }), paranoid: false },
-      projection: "role status email image coverImage",
+      projection: "role status email image coverImages",
     });
 
     if (!targetUser) {
@@ -262,7 +305,7 @@ class UserService {
 
     // remove his uploaded images from assets
     await Promise.all(
-      [targetUser.image, ...(targetUser.coverImage ?? [])]
+      [targetUser.image, ...(targetUser.coverImages ?? [])]
         .filter((url): url is string => Boolean(url))
         .map((url) => fileUpload.deleteLocalFile({ url })),
     );

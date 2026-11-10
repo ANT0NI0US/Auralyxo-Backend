@@ -26,10 +26,16 @@ class AuthenticationService {
   }
 
   private async verifyGoogleAccount(idToken: string): Promise<TokenPayload> {
-    const ticket = await this.client.verifyIdToken({
-      idToken,
-      audience: configService.WEB_CLIENT_IDS,
-    });
+    // google-auth-library throws a plain Error for a fake / expired / wrong-audience token
+    const ticket = await this.client
+      .verifyIdToken({
+        idToken,
+        audience: configService.WEB_CLIENT_IDS,
+      })
+      .catch(() => {
+        throw new exceptions.UnauthorizedException("error.invalidToken");
+      });
+
     const payload = ticket.getPayload();
     if (!payload) {
       throw new exceptions.BadRequestException("error.invalidToken");
@@ -309,6 +315,12 @@ class AuthenticationService {
       throw new exceptions.NotFoundException("error.invalidAccount");
     }
 
+    if (!account.twoStepVerification) {
+      throw new exceptions.ConflictException(
+        "error.twoStepVerificationNotEnabled",
+      );
+    }
+
     await sendEmail.checkOTP({
       email,
       otp,
@@ -344,7 +356,14 @@ class AuthenticationService {
     user: models.HUser;
     lang: enums.LanguageEnum;
   }) {
-    const { email } = user;
+    const { email, twoStepVerification } = user;
+
+    if (twoStepVerification) {
+      throw new exceptions.ConflictException(
+        "error.twoStepVerificationAlreadyEnabled",
+      );
+    }
+
     await sendEmail.sendEmailOtp({
       email,
       lang,
@@ -360,6 +379,14 @@ class AuthenticationService {
     body: dto.ConfirmTwoStepVerificationDto["body"];
   }) {
     const { otp } = body;
+    const { twoStepVerification } = user;
+
+    if (twoStepVerification) {
+      throw new exceptions.ConflictException(
+        "error.twoStepVerificationAlreadyEnabled",
+      );
+    }
+
     await sendEmail.checkOTP({
       email: user.email,
       otp,

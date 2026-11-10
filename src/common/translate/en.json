@@ -49,10 +49,6 @@
     "status": {
       "invalid": "Invalid account status value"
     },
-    "content": {
-      "min": "Message content must be at least 2 characters",
-      "max": "Message content must be at most 50000 characters"
-    },
     "accountStatusType": {
       "invalid": "Invalid account status type"
     },
@@ -78,8 +74,9 @@
   },
   "error": {
     "server": "Something went wrong, server error",
-    "routeNotFound": "Invalid app routing",
+    "routeNotFound": "Url: {url} with method: {method} not found",
     "invalidId": "Invalid id format",
+    "invalidJson": "Invalid JSON body",
     "duplicate": {
       "email": "This email already exists",
       "phone": "This phone number already exists",
@@ -87,6 +84,7 @@
     },
     "unauthorized": "Unauthorized account",
     "forbidden": "You do not have permission to access this resource",
+    "tokenExpired": "Your session has expired, please login again",
     "tokenRevoked": "This session has been logged out, please login again",
     "invalidToken": "Invalid token",
     "missingTokenPayload": "Missing token payload",
@@ -117,10 +115,13 @@
     "fileTooLarge": "File is too large",
     "tooManyFiles": "Too many files",
     "unexpectedFileField": "Unexpected file field name",
-    "invalidUpload": "Invalid file upload"
+    "invalidUpload": "Invalid file upload",
+    "twoStepVerificationAlreadyEnabled": "Two step verification is already enabled for this account",
+    "twoStepVerificationNotEnabled": "Two step verification is not enabled for this account"
   },
   "success": {
     "done": "Done",
+    "welcome": "Welcome to our application 💖",
     "signup": "Account created successfully, a verification code has been sent to your email",
     "emailConfirmed": "Email confirmed successfully",
     "login": "User logged in successfully",
@@ -137,7 +138,9 @@
     "userUpdated": "User updated successfully",
     "userStatusUpdated": "User status updated successfully",
     "userDeleted": "User deleted successfully",
-    "profileImageUpdated": "Profile image updated successfully"
+    "profileImageUpdated": "Profile image updated successfully",
+    "coverImagesUpdated": "Cover images updated successfully",
+    "profileImageDeleted": "Profile image deleted successfully"
   },
   "emailTemplate": {
     "confirmEmailTitle": "Email Confirmation",
@@ -146,6 +149,12 @@
     "yourOtp": "Your OTP",
     "expiresIn": "This code will expire in {minutes} minutes.",
     "disclaimer": "If you didn't request this action, you can safely ignore this email.",
-    "stayInTouch": "Stay in touch"
+    "stayInTouch": "Stay in touch",
+    "newUserTitle": "New User Registered",
+    "newUserBody": "A new user has just joined the app.",
+    "username": "Name",
+    "email": "Email",
+    "provider": "Sign-up method",
+    "joinedAt": "Joined at"
   }
 }
