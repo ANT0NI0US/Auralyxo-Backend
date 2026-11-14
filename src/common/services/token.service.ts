@@ -7,6 +7,10 @@ import { models, queries } from "../../DB";
 import { cacheService, CacheService } from "./cache.service";
 
 type UserId = mongoose.Types.ObjectId | string;
+type signatureType = {
+  accessSignature: string;
+  refreshSignature: string;
+};
 
 export class TokenService {
   private readonly userRepository: queries.UserRepository;
@@ -71,14 +75,8 @@ export class TokenService {
     role = enums.RoleEnum.USER,
   }: {
     role?: enums.RoleEnum;
-  }): Promise<{
-    accessSignature: string;
-    refreshSignature: string;
-  }> {
-    let signatures: {
-      accessSignature: string;
-      refreshSignature: string;
-    };
+  }): Promise<signatureType> {
+    let signatures: signatureType;
     switch (role) {
       case enums.RoleEnum.ADMIN:
         signatures = {

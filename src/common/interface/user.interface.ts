@@ -18,6 +18,7 @@ export interface IUser {
   twoStepVerification?: boolean;
   status: enums.AccountStatusEnum;
   changeStatusAt?: Date;
+  visibility: enums.AccountVisibilityEnum;
   createdAt?: Date;
   updatedAt?: Date;
 }

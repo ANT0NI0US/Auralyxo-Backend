@@ -5,3 +5,4 @@ export * from "./email.enum";
 export * from "./events.enum";
 export * from "./auth.enum";
 export * from "./multer.enum";
+export * from "./follow.enum";

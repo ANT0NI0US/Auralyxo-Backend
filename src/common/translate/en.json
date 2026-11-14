@@ -70,6 +70,25 @@
       "invalidType": "Invalid data type",
       "unrecognizedKeys": "Unrecognized fields are not allowed",
       "invalid": "Invalid value"
+    },
+    "visibility": {
+      "invalid": "Invalid account visibility value"
+    },
+    "followStatus": {
+      "invalid": "Invalid follow status value"
+    },
+    "follower": {
+      "required": "The follower is required"
+    },
+    "following": {
+      "required": "The followed user is required"
+    },
+    "followRequestAction": {
+      "invalid": "Invalid follow request action"
+    },
+    "search": {
+      "required": "Search text is required",
+      "max": "Search text must be at most 50 characters"
     }
   },
   "error": {
@@ -80,7 +99,8 @@
     "duplicate": {
       "email": "This email already exists",
       "phone": "This phone number already exists",
-      "default": "This value already exists"
+      "default": "This value already exists",
+      "follower": "You already follow this user or your follow request is pending"
     },
     "unauthorized": "Unauthorized account",
     "forbidden": "You do not have permission to access this resource",
@@ -117,7 +137,17 @@
     "unexpectedFileField": "Unexpected file field name",
     "invalidUpload": "Invalid file upload",
     "twoStepVerificationAlreadyEnabled": "Two step verification is already enabled for this account",
-    "twoStepVerificationNotEnabled": "Two step verification is not enabled for this account"
+    "twoStepVerificationNotEnabled": "Two step verification is not enabled for this account",
+    "cannotFollowYourself": "You can not follow yourself",
+    "cannotUnfollowYourself": "You can not unfollow yourself",
+    "alreadyFollowing": "You already follow this user or your follow request is pending",
+    "notFollowing": "You do not follow this user",
+    "visibilityAlreadySet": "The account already has this visibility",
+    "followRequestNotFound": "No pending follow request from this user",
+    "privateAccount": "This account is private",
+    "accountIsPublic": "Your account is public, follow requests are accepted automatically",
+    "cannotRemoveYourself": "You can not remove yourself from your followers",
+    "notYourFollower": "This user does not follow you"
   },
   "success": {
     "done": "Done",
@@ -140,7 +170,19 @@
     "userDeleted": "User deleted successfully",
     "profileImageUpdated": "Profile image updated successfully",
     "coverImagesUpdated": "Cover images updated successfully",
-    "profileImageDeleted": "Profile image deleted successfully"
+    "profileImageDeleted": "Profile image deleted successfully",
+    "visibilityUpdated": "Account visibility updated successfully",
+    "followed": "You are now following this user",
+    "followRequestSent": "Follow request sent successfully",
+    "unfollowed": "Unfollowed successfully",
+    "followersRetrieved": "Followers retrieved successfully",
+    "followingRetrieved": "Following list retrieved successfully",
+    "followRequestsRetrieved": "Follow requests retrieved successfully",
+    "followRequestAccepted": "Follow request accepted",
+    "followRequestRejected": "Follow request rejected",
+    "searchResults": "Search results retrieved successfully",
+    "suggestionsRetrieved": "Suggestions retrieved successfully",
+    "followerRemoved": "Follower removed successfully"
   },
   "emailTemplate": {
     "confirmEmailTitle": "Email Confirmation",

@@ -19,6 +19,14 @@ export const getAllUsers = (lang: enums.LanguageEnum) => {
   });
 };
 
+export const getUser = (lang: enums.LanguageEnum) => {
+  return z.object({
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
 export const update = (lang: enums.LanguageEnum) => {
   return z.object({
     body: z.strictObject({
@@ -73,6 +81,109 @@ export const toggleAccountStatus = (lang: enums.LanguageEnum) => {
 };
 
 export const deleteUser = (lang: enums.LanguageEnum) => {
+  return z.object({
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
+export const toggleVisibility = (lang: enums.LanguageEnum) => {
+  return z.object({
+    body: z.strictObject({
+      visibility: z.enum(enums.AccountVisibilityEnum, {
+        error: translate(lang, "validation.visibility.invalid"),
+      }),
+    }),
+  });
+};
+
+// Follow / Unfollow
+export const followAccount = (lang: enums.LanguageEnum) => {
+  return z.object({
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
+export const unFollowAccount = (lang: enums.LanguageEnum) => {
+  return z.object({
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
+export const getFollowers = (lang: enums.LanguageEnum) => {
+  return z.object({
+    query: z.strictObject({
+      page: generalValidationFields(lang).page,
+      limit: generalValidationFields(lang).limit,
+    }),
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
+export const getFollowings = (lang: enums.LanguageEnum) => {
+  return z.object({
+    query: z.strictObject({
+      page: generalValidationFields(lang).page,
+      limit: generalValidationFields(lang).limit,
+    }),
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+  });
+};
+
+export const getFollowRequests = (lang: enums.LanguageEnum) => {
+  return z.object({
+    query: z.strictObject({
+      page: generalValidationFields(lang).page,
+      limit: generalValidationFields(lang).limit,
+    }),
+  });
+};
+
+export const takeAnActionToRequest = (lang: enums.LanguageEnum) => {
+  return z.object({
+    params: z.strictObject({
+      userId: generalValidationFields(lang).id,
+    }),
+    body: z.strictObject({
+      action: z.enum(enums.FollowRequestActionEnum, {
+        error: translate(lang, "validation.followRequestAction.invalid"),
+      }),
+    }),
+  });
+};
+
+export const searchUsers = (lang: enums.LanguageEnum) => {
+  return z.object({
+    query: z.strictObject({
+      search: z
+        .string({ error: translate(lang, "validation.search.required") })
+        .trim()
+        .min(1, { error: translate(lang, "validation.search.required") })
+        .max(50, { error: translate(lang, "validation.search.max") }),
+      page: generalValidationFields(lang).page,
+      limit: generalValidationFields(lang).limit,
+    }),
+  });
+};
+
+export const getSuggestions = (lang: enums.LanguageEnum) => {
+  return z.object({
+    query: z.strictObject({
+      limit: generalValidationFields(lang).limit,
+    }),
+  });
+};
+
+export const removeExistingFollower = (lang: enums.LanguageEnum) => {
   return z.object({
     params: z.strictObject({
       userId: generalValidationFields(lang).id,

@@ -21,7 +21,7 @@ router.get(
     },
   ),
 );
-// -------------------------------------------------- GET ALL USERS --------------------------------------------------- //
+// -------------------------------------------------- GET ALL USERS (ADMIN) --------------------------------------------------- //
 router.get(
   "/all",
   middleware.authentication(),
@@ -37,6 +37,25 @@ router.get(
         query: req.validate.query,
       });
       return { message: "success.usersRetrieved", data: users };
+    },
+  ),
+);
+// -------------------------------------------------- GET ONE USER (ADMIN) --------------------------------------------------- //
+router.get(
+  "/get-user/:userId",
+  middleware.authentication(),
+  middleware.authorization({ accessRole: enums.RoleEnum.ADMIN }),
+  middleware.validation(validators.getUser),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const user = await us.getUser({
+        params: req.validate.params,
+      });
+      return { message: "success.userRetrieved", data: user };
     },
   ),
 );
@@ -57,6 +76,47 @@ router.patch(
       });
 
       return { message: "success.userUpdated", data: updatedUser };
+    },
+  ),
+);
+// -------------------------------------------------- FOLLOW REQUESTS --------------------------------------------------- //
+router.get(
+  "/follow-requests",
+  middleware.authentication(),
+  middleware.validation(validators.getFollowRequests),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const requests = await us.followRequests({
+        query: req.validate.query,
+        user: req.user,
+      });
+
+      return { message: "success.followRequestsRetrieved", data: requests };
+    },
+  ),
+);
+// -------------------------------------------------- ACTION TO REQUEST --------------------------------------------------- //
+router.patch(
+  "/follow-requests/:userId",
+  middleware.authentication(),
+  middleware.validation(validators.takeAnActionToRequest),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const message = await us.actionToRequest({
+        params: req.validate.params,
+        body: req.validate.body,
+        user: req.user,
+      });
+
+      return { message };
     },
   ),
 );
@@ -143,7 +203,7 @@ router.delete(
     },
   ),
 );
-// -------------------------------------------------- UPDATE STATUS --------------------------------------------------- //
+// -------------------------------------------------- TOGGLE STATUS (ADMIN) --------------------------------------------------- //
 router.patch(
   "/:userId/status",
   middleware.authentication(),
@@ -183,6 +243,171 @@ router.delete(
       });
 
       return { message: "success.userDeleted" };
+    },
+  ),
+);
+// -------------------------------------------------- UPDATE VISIBILITY --------------------------------------------------- //
+router.patch(
+  "/update-visibility",
+  middleware.authentication(),
+  middleware.validation(validators.toggleVisibility),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const visibility = await us.updateVisibility({
+        user: req.user,
+        body: req.validate.body,
+      });
+
+      return { message: "success.visibilityUpdated", data: visibility };
+    },
+  ),
+);
+// -------------------------------------------------- FOLLOW ACCOUNT --------------------------------------------------- //
+router.post(
+  "/:userId/follow",
+  middleware.authentication(),
+  middleware.validation(validators.followAccount),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const follow = await us.followAccount({
+        user: req.user,
+        params: req.validate.params,
+      });
+
+      // private account → 202: the request was received but still waits for his approval
+      return follow.status == enums.FollowStatusEnum.PENDING
+        ? { status: 202, message: "success.followRequestSent", data: follow }
+        : { status: 201, message: "success.followed", data: follow };
+    },
+  ),
+);
+// -------------------------------------------------- UNFOLLOW ACCOUNT --------------------------------------------------- //
+router.delete(
+  "/:userId/unfollow",
+  middleware.authentication(),
+  middleware.validation(validators.unFollowAccount),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      await us.unFollowAccount({
+        user: req.user,
+        params: req.validate.params,
+      });
+
+      return { message: "success.unfollowed" };
+    },
+  ),
+);
+// -------------------------------------------------- FOLLOWERS --------------------------------------------------- //
+router.get(
+  "/:userId/followers",
+  middleware.authentication(),
+  middleware.validation(validators.getFollowers),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const followers = await us.followers({
+        query: req.validate.query,
+        params: req.validate.params,
+        user: req.user,
+      });
+
+      return { message: "success.followersRetrieved", data: followers };
+    },
+  ),
+);
+// -------------------------------------------------- FOLLOWINGS --------------------------------------------------- //
+router.get(
+  "/:userId/following",
+  middleware.authentication(),
+  middleware.validation(validators.getFollowings),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const followings = await us.following({
+        query: req.validate.query,
+        params: req.validate.params,
+        user: req.user,
+      });
+
+      return { message: "success.followingRetrieved", data: followings };
+    },
+  ),
+);
+// -------------------------------------------------- SEARCH USERS --------------------------------------------------- //
+router.get(
+  "/search",
+  middleware.authentication(),
+  middleware.validation(validators.searchUsers),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const users = await us.searchUsers({
+        query: req.validate.query,
+        user: req.user,
+      });
+
+      return { message: "success.searchResults", data: users };
+    },
+  ),
+);
+// -------------------------------------------------- SUGGESTIONS --------------------------------------------------- //
+router.get(
+  "/suggestions",
+  middleware.authentication(),
+  middleware.validation(validators.getSuggestions),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const suggestions = await us.suggestions({
+        query: req.validate.query,
+        user: req.user,
+      });
+
+      return { message: "success.suggestionsRetrieved", data: suggestions };
+    },
+  ),
+);
+// -------------------------------------------------- REMOVE FOLLOWER --------------------------------------------------- //
+router.delete(
+  "/followers/:userId",
+  middleware.authentication(),
+  middleware.validation(validators.removeExistingFollower),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      await us.removeExistingFollower({
+        user: req.user,
+        params: req.validate.params,
+      });
+
+      return { message: "success.followerRemoved" };
     },
   ),
 );

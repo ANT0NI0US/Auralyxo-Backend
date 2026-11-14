@@ -22,7 +22,7 @@ emailEvent.on(
         html: sendEmail.emailTemplate(template),
       });
     } catch (error) {
-      console.log(`Failed to send email`, error);
+      console.error(`Failed to send email`, error);
     }
   },
 );

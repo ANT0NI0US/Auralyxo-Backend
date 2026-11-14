@@ -12,13 +12,78 @@ import * as dto from "./dto/user.dto";
 
 class UserService {
   private userRepository: queries.UserRepository;
+  private followRepository: queries.FollowRepository;
   private cacheService: services.CacheService;
   private tokenService: services.TokenService;
 
   constructor() {
     this.userRepository = new queries.UserRepository();
+    this.followRepository = new queries.FollowRepository();
     this.cacheService = services.cacheService;
     this.tokenService = services.tokenService;
+  }
+
+  private async followList({
+    viewer,
+    userId,
+    page,
+    limit,
+    matchField,
+    showField,
+  }: {
+    viewer: models.HUser;
+    userId: string;
+    page: number;
+    limit: number;
+    matchField: "follower" | "following";
+    showField: "follower" | "following";
+  }) {
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: objectId.toObjectId({ id: userId }) },
+      projection: "visibility",
+    });
+
+    if (!targetUser) {
+      throw new exceptions.NotFoundException("error.invalidUser");
+    }
+
+    if (
+      targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE &&
+      !viewer._id.equals(targetUser._id)
+    ) {
+      const isFollower = await this.followRepository.findOne({
+        filter: {
+          follower: viewer._id,
+          following: targetUser._id,
+          status: enums.FollowStatusEnum.ACCEPTED,
+        },
+        projection: "_id",
+      });
+
+      if (!isFollower) {
+        throw new exceptions.ForbiddenException("error.privateAccount");
+      }
+    }
+
+    const data = await this.followRepository.paginate({
+      filter: {
+        [matchField]: targetUser._id,
+        status: enums.FollowStatusEnum.ACCEPTED,
+      },
+      options: {
+        sort: { createdAt: -1 },
+        populate: { path: showField, select: "firstName lastName image" },
+      },
+      page,
+      limit,
+    });
+
+    return {
+      ...data,
+      docs: (data.docs as models.HFollow[])
+        .map((doc) => doc.toJSON())
+        .filter((doc) => doc[showField]),
+    };
   }
 
   async profile({ user }: { user: models.HUser }) {
@@ -68,6 +133,25 @@ class UserService {
     };
   }
 
+  async getUser({ params }: { params: dto.GetUserDto["params"] }) {
+    const { userId } = params;
+
+    const user = await this.userRepository.findOne({
+      filter: {
+        _id: objectId.toObjectId({ id: userId }),
+        role: { $ne: enums.RoleEnum.ADMIN },
+        paranoid: false,
+      },
+      projection: "-password -phone",
+    });
+
+    if (!user) {
+      throw new exceptions.NotFoundException("error.invalidUser");
+    }
+
+    return user.toJSON();
+  }
+
   async updateUser({
     user,
     updatedData,
@@ -96,13 +180,17 @@ class UserService {
     const { userId } = params;
     const user = await this.userRepository.findById({
       id: new Types.ObjectId(userId),
-      projection: "firstName lastName image coverImages gender",
+      projection: "firstName lastName image coverImages gender visibility",
     });
 
     if (!user) {
       throw new exceptions.NotFoundException("error.invalidUser");
     }
 
+    if (user.visibility == enums.AccountVisibilityEnum.PRIVATE) {
+      const { firstName, lastName, image, visibility } = user.toJSON();
+      return { _id: user._id, firstName, lastName, image, visibility };
+    }
     return user.toJSON();
   }
 
@@ -284,6 +372,13 @@ class UserService {
       throw new exceptions.ConflictException("error.archiveBeforeDelete");
     }
 
+    // remove every follow where he is the follower or the one being followed (+ pending requests)
+    await this.followRepository.deleteMany({
+      filter: {
+        $or: [{ follower: targetUser._id }, { following: targetUser._id }],
+      },
+    });
+
     // remove every redis key related to this user (profile, revoke tokens, otp, login trials)
     const [userIdKeys, userEmailKeys] = await Promise.all([
       this.cacheService.keys({
@@ -309,6 +404,334 @@ class UserService {
         .filter((url): url is string => Boolean(url))
         .map((url) => fileUpload.deleteLocalFile({ url })),
     );
+
+    return;
+  }
+
+  async updateVisibility({
+    user,
+    body,
+  }: {
+    user: models.HUser;
+    body: dto.ToggleVisibilityDto["body"];
+  }) {
+    const { visibility } = body;
+
+    if (user.visibility == visibility) {
+      throw new exceptions.ConflictException("error.visibilityAlreadySet");
+    }
+
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: { visibility },
+    });
+
+    if (visibility == enums.AccountVisibilityEnum.PUBLIC) {
+      await this.followRepository.updateMany({
+        filter: {
+          following: user._id,
+          status: enums.FollowStatusEnum.PENDING,
+        },
+        update: {
+          status: enums.FollowStatusEnum.ACCEPTED,
+        },
+      });
+    }
+
+    await this.cacheService.del({
+      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    });
+
+    return visibility;
+  }
+
+  async followAccount({
+    params,
+    user,
+  }: {
+    params: dto.FollowAccountDto["params"];
+    user: models.HUser;
+  }) {
+    const { userId } = params;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.BadRequestException("error.cannotFollowYourself");
+    }
+
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: objectId.toObjectId({ id: userId }) },
+      projection: "visibility",
+    });
+
+    if (!targetUser) {
+      throw new exceptions.NotFoundException("error.invalidUser");
+    }
+
+    const existingFollow = await this.followRepository.findOne({
+      filter: { follower: user._id, following: targetUser._id },
+      projection: "_id",
+    });
+
+    if (existingFollow) {
+      throw new exceptions.ConflictException("error.alreadyFollowing");
+    }
+
+    const newFollow = await this.followRepository.create({
+      data: {
+        follower: user._id,
+        following: targetUser._id,
+        status:
+          targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE
+            ? enums.FollowStatusEnum.PENDING
+            : enums.FollowStatusEnum.ACCEPTED,
+      },
+    });
+
+    return newFollow.toJSON();
+  }
+
+  async unFollowAccount({
+    params,
+    user,
+  }: {
+    params: dto.UnFollowAccountDto["params"];
+    user: models.HUser;
+  }) {
+    const { userId } = params;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.BadRequestException("error.cannotUnfollowYourself");
+    }
+
+    const deletedFollow = await this.followRepository.findOneAndDelete({
+      filter: {
+        follower: user._id,
+        following: objectId.toObjectId({ id: userId }),
+      },
+    });
+
+    if (!deletedFollow) {
+      throw new exceptions.NotFoundException("error.notFollowing");
+    }
+
+    return;
+  }
+
+  async followers({
+    query,
+    params,
+    user,
+  }: {
+    query: dto.GetFollowersDto["query"];
+    params: dto.GetFollowersDto["params"];
+    user: models.HUser;
+  }) {
+    const { page, limit } = query;
+    const { userId } = params;
+
+    return this.followList({
+      viewer: user,
+      userId,
+      page,
+      limit,
+      matchField: "following",
+      showField: "follower",
+    });
+  }
+
+  async following({
+    query,
+    params,
+    user,
+  }: {
+    query: dto.GetFollowingsDto["query"];
+    params: dto.GetFollowingsDto["params"];
+    user: models.HUser;
+  }) {
+    const { page, limit } = query;
+    const { userId } = params;
+
+    return this.followList({
+      viewer: user,
+      userId,
+      page,
+      limit,
+      matchField: "follower",
+      showField: "following",
+    });
+  }
+
+  async followRequests({
+    query,
+    user,
+  }: {
+    query: dto.GetFollowRequestsDto["query"];
+    user: models.HUser;
+  }) {
+    const { page, limit } = query;
+
+    if (user.visibility == enums.AccountVisibilityEnum.PUBLIC) {
+      throw new exceptions.BadRequestException("error.accountIsPublic");
+    }
+
+    const data = await this.followRepository.paginate({
+      filter: {
+        following: user._id,
+        status: enums.FollowStatusEnum.PENDING,
+      },
+      options: {
+        sort: { createdAt: -1 },
+        populate: { path: "follower", select: "firstName lastName image" },
+      },
+      page,
+      limit,
+    });
+
+    return {
+      ...data,
+      docs: (data.docs as models.HFollow[])
+        .map((doc) => doc.toJSON())
+        .filter((doc) => doc["follower"]),
+    };
+  }
+
+  async actionToRequest({
+    params,
+    body,
+    user,
+  }: {
+    params: dto.TakeAnActionToRequestDto["params"];
+    body: dto.TakeAnActionToRequestDto["body"];
+    user: models.HUser;
+  }) {
+    const { userId } = params;
+    const { action } = body;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.NotFoundException("error.followRequestNotFound");
+    }
+
+    switch (action) {
+      case enums.FollowRequestActionEnum.ACCEPTED: {
+        const updateRequest = await this.followRepository.findOneAndUpdate({
+          filter: {
+            follower: userId,
+            following: user._id,
+            status: enums.FollowStatusEnum.PENDING,
+          },
+          update: {
+            status: enums.FollowStatusEnum.ACCEPTED,
+          },
+        });
+
+        if (!updateRequest) {
+          throw new exceptions.NotFoundException("error.followRequestNotFound");
+        }
+
+        return "success.followRequestAccepted";
+      }
+      case enums.FollowRequestActionEnum.REJECTED: {
+        const deleteRequest = await this.followRepository.findOneAndDelete({
+          filter: {
+            follower: userId,
+            following: user._id,
+            status: enums.FollowStatusEnum.PENDING,
+          },
+        });
+
+        if (!deleteRequest) {
+          throw new exceptions.NotFoundException("error.followRequestNotFound");
+        }
+
+        return "success.followRequestRejected";
+      }
+
+      default:
+        throw new exceptions.BadRequestException(
+          "validation.followRequestAction.invalid",
+        );
+    }
+  }
+
+  async searchUsers({
+    query,
+    user,
+  }: {
+    query: dto.SearchUsersDto["query"];
+    user: models.HUser;
+  }) {
+    const { search, page, limit } = query;
+
+    const text = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const data = await this.userRepository.paginate({
+      filter: {
+        _id: { $ne: user._id },
+        role: { $ne: enums.RoleEnum.ADMIN },
+        confirmEmail: { $exists: true },
+        $or: [
+          { firstName: { $regex: text, $options: "i" } },
+          { lastName: { $regex: text, $options: "i" } },
+        ],
+      },
+      projection: "firstName lastName image visibility",
+      options: { sort: { createdAt: -1 } },
+      page,
+      limit,
+    });
+
+    return {
+      ...data,
+      docs: (data.docs as models.HUser[]).map((doc) => doc.toJSON()),
+    };
+  }
+
+  async suggestions({
+    query,
+    user,
+  }: {
+    query: dto.GetSuggestionsDto["query"];
+    user: models.HUser;
+  }) {
+    const { limit } = query;
+
+    const users = await this.userRepository.find({
+      filter: {
+        _id: { $ne: user._id },
+        confirmEmail: { $exists: true },
+        role: { $ne: enums.RoleEnum.ADMIN },
+      },
+      projection: "firstName lastName image visibility",
+      options: { sort: { createdAt: -1 }, limit },
+    });
+
+    return users.map((doc) => doc.toJSON());
+  }
+
+  async removeExistingFollower({
+    params,
+    user,
+  }: {
+    params: dto.RemoveExistingFollowerDto["params"];
+    user: models.HUser;
+  }) {
+    const { userId } = params;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.BadRequestException("error.cannotRemoveYourself");
+    }
+
+    const deletedFollow = await this.followRepository.findOneAndDelete({
+      filter: {
+        follower: objectId.toObjectId({ id: userId }),
+        following: user._id,
+        status: enums.FollowStatusEnum.ACCEPTED,
+      },
+    });
+
+    if (!deletedFollow) {
+      throw new exceptions.NotFoundException("error.notYourFollower");
+    }
 
     return;
   }

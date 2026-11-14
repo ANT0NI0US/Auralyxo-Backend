@@ -23,3 +23,8 @@ export enum UsersByAccountStatusEnum {
   ACTIVE,
   ALL,
 }
+
+export enum AccountVisibilityEnum {
+  PRIVATE,
+  PUBLIC,
+}

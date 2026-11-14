@@ -1,9 +1,7 @@
 import mongoose, { HydratedDocument } from "mongoose";
 import { enums, events, exceptions, itf, security } from "../../common";
 import configService from "../../config.service";
-
-const numericValues = (e: object): number[] =>
-  Object.values(e).filter((v): v is number => typeof v === "number");
+import { numericValues } from "./numericValues";
 
 const userSchema = new mongoose.Schema<itf.IUser>(
   {
@@ -81,6 +79,14 @@ const userSchema = new mongoose.Schema<itf.IUser>(
       default: enums.AccountStatusEnum.ACTIVE,
     },
     changeStatusAt: Date,
+    visibility: {
+      type: Number,
+      enum: {
+        values: numericValues(enums.AccountVisibilityEnum),
+        message: "validation.visibility.invalid",
+      },
+      default: enums.AccountVisibilityEnum.PUBLIC,
+    },
   },
   {
     timestamps: true,

@@ -70,6 +70,25 @@
       "invalidType": "نوع البيانات غير صحيح",
       "unrecognizedKeys": "يوجد حقول غير مسموح بها",
       "invalid": "قيمة غير صحيحة"
+    },
+    "visibility": {
+      "invalid": "قيمة خصوصية الحساب غير صالحة"
+    },
+    "followStatus": {
+      "invalid": "قيمة حالة المتابعة غير صالحة"
+    },
+    "follower": {
+      "required": "المتابِع مطلوب"
+    },
+    "following": {
+      "required": "المستخدم المتابَع مطلوب"
+    },
+    "followRequestAction": {
+      "invalid": "إجراء غير صالح على طلب المتابعة"
+    },
+    "search": {
+      "required": "نص البحث مطلوب",
+      "max": "نص البحث يجب ألا يزيد عن 50 حرفًا"
     }
   },
   "error": {
@@ -80,7 +99,8 @@
     "duplicate": {
       "email": "هذا البريد الإلكتروني مسجل من قبل",
       "phone": "رقم الهاتف هذا مسجل من قبل",
-      "default": "هذه القيمة موجودة من قبل"
+      "default": "هذه القيمة موجودة من قبل",
+      "follower": "أنت تتابع هذا المستخدم بالفعل أو طلب المتابعة قيد الانتظار"
     },
     "unauthorized": "حساب غير مصرح له",
     "forbidden": "ليس لديك صلاحية للوصول إلى هذا المورد",
@@ -117,7 +137,17 @@
     "unexpectedFileField": "اسم حقل الملف غير صحيح",
     "invalidUpload": "رفع الملف غير صالح",
     "twoStepVerificationAlreadyEnabled": "تم تفعيل التحقق بخطوتين لهذا الحساب بالفعل",
-    "twoStepVerificationNotEnabled": "التحقق بخطوتين غير مفعل لهذا الحساب"
+    "twoStepVerificationNotEnabled": "التحقق بخطوتين غير مفعل لهذا الحساب",
+    "cannotFollowYourself": "لا يمكنك متابعة نفسك",
+    "cannotUnfollowYourself": "لا يمكنك إلغاء متابعة نفسك",
+    "alreadyFollowing": "أنت تتابع هذا المستخدم بالفعل أو طلب المتابعة قيد الانتظار",
+    "notFollowing": "أنت لا تتابع هذا المستخدم",
+    "visibilityAlreadySet": "الحساب بالفعل على هذه الخصوصية",
+    "followRequestNotFound": "لا يوجد طلب متابعة معلّق من هذا المستخدم",
+    "privateAccount": "هذا الحساب خاص",
+    "accountIsPublic": "حسابك عام، يتم قبول طلبات المتابعة تلقائيًا",
+    "cannotRemoveYourself": "لا يمكنك إزالة نفسك من متابعيك",
+    "notYourFollower": "هذا المستخدم لا يتابعك"
   },
   "success": {
     "done": "تم بنجاح",
@@ -140,7 +170,19 @@
     "userDeleted": "تم حذف المستخدم بنجاح",
     "profileImageUpdated": "تم تحديث صورة الملف الشخصي بنجاح",
     "coverImagesUpdated": "تم تحديث صور الغلاف بنجاح",
-    "profileImageDeleted": "تم حذف صورة الملف الشخصي بنجاح"
+    "profileImageDeleted": "تم حذف صورة الملف الشخصي بنجاح",
+    "visibilityUpdated": "تم تحديث خصوصية الحساب بنجاح",
+    "followed": "أنت الآن تتابع هذا المستخدم",
+    "followRequestSent": "تم إرسال طلب المتابعة بنجاح",
+    "unfollowed": "تم إلغاء المتابعة بنجاح",
+    "followersRetrieved": "تم جلب المتابعين بنجاح",
+    "followingRetrieved": "تم جلب قائمة المتابَعين بنجاح",
+    "followRequestsRetrieved": "تم جلب طلبات المتابعة بنجاح",
+    "followRequestAccepted": "تم قبول طلب المتابعة",
+    "followRequestRejected": "تم رفض طلب المتابعة",
+    "searchResults": "تم جلب نتائج البحث بنجاح",
+    "suggestionsRetrieved": "تم جلب الاقتراحات بنجاح",
+    "followerRemoved": "تمت إزالة المتابع بنجاح"
   },
   "emailTemplate": {
     "confirmEmailTitle": "تأكيد البريد الإلكتروني",
