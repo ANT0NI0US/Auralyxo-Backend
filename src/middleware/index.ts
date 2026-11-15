@@ -5,3 +5,5 @@ export * from "./language.middleware";
 export * from "./authentication.middleware";
 export * from "./authorization.middleware";
 export * from "./multer.middleware";
+export * from "./notFound.middleware";
+export * from "./welcome.middleware";

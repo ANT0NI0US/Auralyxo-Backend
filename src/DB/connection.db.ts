@@ -1,7 +1,8 @@
 import type { Application } from "express";
 import mongoose from "mongoose";
-import { models } from ".";
+// common must load before models (circular import)
 import { services } from "../common";
+import { models } from "../DB";
 import configService from "../config.service";
 
 export const BootstrapDB = async (app: Application) => {

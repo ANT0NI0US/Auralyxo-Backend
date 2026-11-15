@@ -7,7 +7,7 @@ export class CacheService {
     this.client = createClient({ url: configService.DB_REDIS_URI });
     // without this listener a dropped connection crashes the whole process
     this.client.on("error", (error) => {
-      console.info(`Redis error: ${error.message}`);
+      console.error(`Redis error: ${error.message}`);
     });
   }
 
