@@ -76,7 +76,8 @@ export const generalValidationFields = (lang: enums.LanguageEnum) => ({
       encoding: z.string(),
       mimetype: z.string(),
       size: z.number(),
-      path: z.string(),
+      // only exist with the disk storage cause the s3 bucket
+      path: z.string().optional(),
       // only exist with the memory storage
       buffer: z.instanceof(Buffer).optional(),
       // only exist with the disk storage

@@ -8,3 +8,5 @@ assets
 
 dist
 .omc
+
+src/config/*.json

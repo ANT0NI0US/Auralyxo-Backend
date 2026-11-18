@@ -10,6 +10,9 @@ export type ShareProfileDto = z.infer<
 export type ProfileImageDto = z.infer<
   ReturnType<typeof validators.profileImage>
 >;
+export type ProfileImagePreAssignedDto = z.infer<
+  ReturnType<typeof validators.profileImagePreAssigned>
+>;
 export type ToggleAccountStatusDto = z.infer<
   ReturnType<typeof validators.toggleAccountStatus>
 >;

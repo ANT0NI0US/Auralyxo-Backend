@@ -78,6 +78,21 @@ export const USER_PROFILE_CACHE_TTL: number = parseInt(
   process.env.USER_PROFILE_CACHE_TTL ?? "86400",
 );
 
+// AWS
+export const AWS_REGION: string = process.env.AWS_REGION as string;
+export const AWS_ACCESS_KEY_ID: string = process.env
+  .AWS_ACCESS_KEY_ID as string;
+export const AWS_ACCESS_SECRET_KEY: string = process.env
+  .AWS_ACCESS_SECRET_KEY as string;
+export const AWS_BUCKET_NAME: string = process.env.AWS_BUCKET_NAME as string;
+export const AWS_EXPIRES_IN: number = parseInt(
+  process.env.AWS_EXPIRES_IN ?? "360",
+);
+
+// NOTIFICATIONS
+export const FIREBASE_SERVICE_ACCOUNT: string = process.env
+  .FIREBASE_SERVICE_ACCOUNT as string;
+
 export default {
   NODE_ENV,
   PORT,
@@ -108,4 +123,10 @@ export default {
   PAGINATION_LIMIT,
   PAGE,
   USER_PROFILE_CACHE_TTL,
+  AWS_REGION,
+  AWS_ACCESS_KEY_ID,
+  AWS_ACCESS_SECRET_KEY,
+  AWS_BUCKET_NAME,
+  AWS_EXPIRES_IN,
+  FIREBASE_SERVICE_ACCOUNT,
 };

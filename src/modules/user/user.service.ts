@@ -2,25 +2,29 @@ import { Types } from "mongoose";
 import {
   enums,
   exceptions,
-  fileUpload,
+  // fileUpload,
   objectId,
   security,
   services,
+  tps,
 } from "../../common";
 import { models, queries } from "../../DB";
 import * as dto from "./dto/user.dto";
+import * as entities from "./entities/user.entities";
 
 class UserService {
   private userRepository: queries.UserRepository;
   private followRepository: queries.FollowRepository;
   private cacheService: services.CacheService;
   private tokenService: services.TokenService;
+  private cloudService: services.CloudService;
 
   constructor() {
     this.userRepository = new queries.UserRepository();
     this.followRepository = new queries.FollowRepository();
     this.cacheService = services.cacheService;
     this.tokenService = services.tokenService;
+    this.cloudService = services.cloudService;
   }
 
   private async followList({
@@ -194,23 +198,29 @@ class UserService {
     return user.toJSON();
   }
 
+  // * using s3 bucket
   async deleteProfileImage({ user }: { user: models.HUser }) {
     const profileImageUrl = user.image;
 
-    // after: removes the field from the document (same as a user who never uploaded)
-    user.set("image", undefined);
-    await user.save({ validateModifiedOnly: true });
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: {
+        $unset: { image: 1 },
+      },
+    });
 
     await this.cacheService.del({
       key: this.tokenService.userBaseProfile({ userId: user._id }),
     });
 
     if (profileImageUrl) {
-      await fileUpload.deleteLocalFile({ url: profileImageUrl });
+      await this.cloudService.deleteAsset({ Key: profileImageUrl });
     }
+
     return;
   }
 
+  // * using s3 bucket
   async coverImages({
     user,
     files,
@@ -220,23 +230,30 @@ class UserService {
   }) {
     const oldCoverImages = user.coverImages;
 
-    user.coverImages = files.map((ele) => ele.path);
-    await user.save({ validateModifiedOnly: true });
+    const newCoverImages = await this.cloudService.uploadAssets({
+      files: files as tps.FileType[],
+      path: `User/${user._id.toString()}/cover-images`,
+    });
+
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: {
+        coverImages: newCoverImages,
+      },
+    });
+
     await this.cacheService.del({
       key: this.tokenService.userBaseProfile({ userId: user._id }),
     });
 
     if (oldCoverImages?.length) {
-      await Promise.all(
-        oldCoverImages
-          .filter((url) => Boolean(url))
-          .map((url) => fileUpload.deleteLocalFile({ url })),
-      );
+      await this.cloudService.deleteAssets({ Keys: oldCoverImages });
     }
 
-    return user.coverImages;
+    return newCoverImages;
   }
 
+  // * using s3 bucket
   async profileImage({
     user,
     file,
@@ -247,19 +264,79 @@ class UserService {
     // keep the old image before overwriting it
     const oldImage = user.image;
 
-    user.image = file.path;
-    // we use validateModifiedOnly: true cause we remove password from back in all cases and we don't want to validate it.
-    await user.save({ validateModifiedOnly: true });
+    /*
+    * using uploadAsset
+    const newImage = await this.cloudService.uploadAsset({
+      file: file as tps.FileType,
+      path: `User/${user._id.toString()}/profile`,
+    });
+
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: {
+        image: newImage,
+      },
+    });
+    */
+
+    // using uploadLargeAsset
+    const newImage = await this.cloudService.uploadLargeAsset({
+      // storageApproach: enums.StorageApproachEnum.MEMORY,
+      file: file as tps.FileType,
+      path: `User/${user._id.toString()}/profile`,
+    });
+
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: {
+        image: newImage.Key as string,
+      },
+    });
+
     await this.cacheService.del({
       key: this.tokenService.userBaseProfile({ userId: user._id }),
     });
 
     // remove the old image only after the new one is saved
     if (oldImage) {
-      await fileUpload.deleteLocalFile({ url: oldImage });
+      await this.cloudService.deleteAsset({ Key: oldImage });
     }
 
-    return user.image;
+    return newImage.Key as string;
+  }
+
+  // * using s3 bucket pre assigned
+  async profileImagePreAssigned({
+    user,
+    body,
+  }: {
+    user: models.HUser;
+    body: dto.ProfileImagePreAssignedDto["body"];
+  }): Promise<entities.IProfileImagePreAssignedResponse> {
+    // keep the old image before overwriting it
+    const oldImage = user.image;
+    /*
+    * LIKE
+    ContentType : image/jpeg
+    Originalname : antonious.jpg
+    */
+    const { ContentType, Originalname } = body;
+    const { url } = await this.cloudService.createUploadPreSignedAssetLink({
+      ContentType,
+      Originalname,
+      path: `User/${user._id.toString()}/profile`,
+    });
+
+    await this.cacheService.del({
+      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    });
+
+    // remove the old image only after the new one is saved
+    if (oldImage) {
+      await this.cloudService.deleteAsset({ Key: oldImage });
+    }
+
+    return { url };
   }
 
   async updateStatus({
@@ -328,6 +405,7 @@ class UserService {
     };
   }
 
+  // * using s3 bucket
   async deleteUser({
     admin,
     params,
@@ -399,11 +477,9 @@ class UserService {
     });
 
     // remove his uploaded images from assets
-    await Promise.all(
-      [targetUser.image, ...(targetUser.coverImages ?? [])]
-        .filter((url): url is string => Boolean(url))
-        .map((url) => fileUpload.deleteLocalFile({ url })),
-    );
+    await this.cloudService.deleteFileDir({
+      prefix: `User/${userId.toString()}`,
+    });
 
     return;
   }

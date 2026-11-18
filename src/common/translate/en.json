@@ -89,11 +89,19 @@
     "search": {
       "required": "Search text is required",
       "max": "Search text must be at most 50 characters"
+    },
+    "contentType": {
+      "invalid": "Invalid file type, allowed types are: image/jpg, image/jpeg, image/png"
+    },
+    "originalname": {
+      "required": "File name is required",
+      "max": "File name must be at most 100 characters"
     }
   },
   "error": {
     "server": "Something went wrong, server error",
     "routeNotFound": "Url: {url} with method: {method} not found",
+    "tooManyRequests": "Too many requests, please try again later",
     "invalidId": "Invalid id format",
     "invalidJson": "Invalid JSON body",
     "duplicate": {
@@ -147,7 +155,9 @@
     "privateAccount": "This account is private",
     "accountIsPublic": "Your account is public, follow requests are accepted automatically",
     "cannotRemoveYourself": "You can not remove yourself from your followers",
-    "notYourFollower": "This user does not follow you"
+    "notYourFollower": "This user does not follow you",
+    "failToUpload": "Fail to upload this file",
+    "concurrentUpdate": "This data was changed by another request, please try again"
   },
   "success": {
     "done": "Done",
@@ -182,7 +192,8 @@
     "followRequestRejected": "Follow request rejected",
     "searchResults": "Search results retrieved successfully",
     "suggestionsRetrieved": "Suggestions retrieved successfully",
-    "followerRemoved": "Follower removed successfully"
+    "followerRemoved": "Follower removed successfully",
+    "otpSentIfRegistered": "If this email is registered, a verification code will be sent to it shortly"
   },
   "emailTemplate": {
     "confirmEmailTitle": "Email Confirmation",

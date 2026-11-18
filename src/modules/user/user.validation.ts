@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { enums, translate } from "../../common";
+import { enums, fileUpload, translate } from "../../common";
 import { generalValidationFields } from "../../common/validation";
 
 export const getAllUsers = (lang: enums.LanguageEnum) => {
@@ -58,6 +58,22 @@ export const shareProfile = (lang: enums.LanguageEnum) => {
 export const profileImage = (lang: enums.LanguageEnum) => {
   return z.object({
     file: generalValidationFields(lang).file,
+  });
+};
+
+export const profileImagePreAssigned = (lang: enums.LanguageEnum) => {
+  return z.object({
+    body: z.strictObject({
+      // only the image types we accept in the normal upload (image/jpeg, image/png, ...)
+      ContentType: z.enum(fileUpload.fileValidation.image, {
+        error: translate(lang, "validation.contentType.invalid"),
+      }),
+      Originalname: z
+        .string({ error: translate(lang, "validation.originalname.required") })
+        .trim()
+        .min(1, { error: translate(lang, "validation.originalname.required") })
+        .max(100, { error: translate(lang, "validation.originalname.max") }),
+    }),
   });
 };
 

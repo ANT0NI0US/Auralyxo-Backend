@@ -89,11 +89,19 @@
     "search": {
       "required": "نص البحث مطلوب",
       "max": "نص البحث يجب ألا يزيد عن 50 حرفًا"
+    },
+    "contentType": {
+      "invalid": "نوع الملف غير صالح، الأنواع المسموح بها: image/jpg, image/jpeg, image/png"
+    },
+    "originalname": {
+      "required": "اسم الملف مطلوب",
+      "max": "اسم الملف يجب ألا يزيد عن 100 حرف"
     }
   },
   "error": {
     "server": "حدث خطأ ما، خطأ في الخادم",
     "routeNotFound": "المسار {url} بطريقة {method} غير موجود",
+    "tooManyRequests": "عدد كبير جدًا من الطلبات، من فضلك حاول مرة أخرى بعد قليل",
     "invalidId": "صيغة المعرّف غير صحيحة",
     "invalidJson": "صيغة البيانات المرسلة (JSON) غير صحيحة",
     "duplicate": {
@@ -147,7 +155,9 @@
     "privateAccount": "هذا الحساب خاص",
     "accountIsPublic": "حسابك عام، يتم قبول طلبات المتابعة تلقائيًا",
     "cannotRemoveYourself": "لا يمكنك إزالة نفسك من متابعيك",
-    "notYourFollower": "هذا المستخدم لا يتابعك"
+    "notYourFollower": "هذا المستخدم لا يتابعك",
+    "failToUpload": "فشل تحميل هذا الملف",
+    "concurrentUpdate": "تم تعديل هذه البيانات من طلب آخر، من فضلك حاول مرة أخرى"
   },
   "success": {
     "done": "تم بنجاح",
@@ -182,7 +192,8 @@
     "followRequestRejected": "تم رفض طلب المتابعة",
     "searchResults": "تم جلب نتائج البحث بنجاح",
     "suggestionsRetrieved": "تم جلب الاقتراحات بنجاح",
-    "followerRemoved": "تمت إزالة المتابع بنجاح"
+    "followerRemoved": "تمت إزالة المتابع بنجاح",
+    "otpSentIfRegistered": "إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق خلال دقائق"
   },
   "emailTemplate": {
     "confirmEmailTitle": "تأكيد البريد الإلكتروني",

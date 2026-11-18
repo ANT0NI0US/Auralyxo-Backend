@@ -58,6 +58,12 @@ export const globalErrorHandling = (
     message = "error.invalidJson";
   }
 
+  // two requests changed the same document at the same time (optimisticConcurrency)
+  else if (error instanceof mongoose.Error.VersionError) {
+    status = 409;
+    message = "error.concurrentUpdate";
+  }
+
   const isProduction = configService.NODE_ENV == "production";
   const defaultErrorMessage: TranslationKey = "error.server";
   const displayErrorMessage = message || defaultErrorMessage;

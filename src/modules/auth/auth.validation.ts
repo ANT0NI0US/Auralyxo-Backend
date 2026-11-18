@@ -17,6 +17,7 @@ export const loginSchema = (lang: enums.LanguageEnum) => {
   return z.strictObject({
     email: generalValidationFields(lang).email,
     password: generalValidationFields(lang).password,
+    FCM: z.string().optional(),
   });
 };
 

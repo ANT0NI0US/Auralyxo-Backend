@@ -70,6 +70,24 @@ export class CacheService {
   async incrBy({ key, value = 1 }: { key: string; value?: number }) {
     return await this.client.incrBy(key, value);
   }
+
+  // --------------------------------------------------------- SETS --------------------------------------------------------------------
+
+  async addToSet({ key, value }: { key: string; value: string }) {
+    return await this.client.sAdd(key, value);
+  }
+
+  async removeFromSet({ key, value }: { key: string; value: string }) {
+    return await this.client.sRem(key, value);
+  }
+
+  async getMembers({ key }: { key: string }) {
+    return await this.client.sMembers(key);
+  }
+
+  async hasMembers({ key }: { key: string }) {
+    return await this.client.sCard(key);
+  }
 }
 
 export const cacheService = new CacheService();

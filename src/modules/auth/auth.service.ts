@@ -16,12 +16,14 @@ class AuthenticationService {
   private userRepository: queries.UserRepository;
   private cacheService: services.CacheService;
   private tokenService: services.TokenService;
+  private notificationService: services.NotificationService;
   private client: OAuth2Client;
 
   constructor() {
     this.userRepository = new queries.UserRepository();
     this.cacheService = services.cacheService;
     this.tokenService = services.tokenService;
+    this.notificationService = services.notificationService;
     this.client = new OAuth2Client();
   }
 
@@ -149,7 +151,7 @@ class AuthenticationService {
     });
 
     if (!account) {
-      throw new exceptions.NotFoundException("error.invalidAccount");
+      throw new exceptions.BadRequestException("error.invalidOtp");
     }
 
     await sendEmail.checkOTP({
@@ -158,8 +160,12 @@ class AuthenticationService {
       subject: enums.EmailSubjectEnum.CONFIRM_EMAIL,
     });
 
-    account.confirmEmail = new Date();
-    await account.save();
+    await this.userRepository.findByIdAndUpdate({
+      id: account._id,
+      update: {
+        confirmEmail: new Date(),
+      },
+    });
 
     await this.cacheService.del({
       key: await this.cacheService.keys({
@@ -196,7 +202,7 @@ class AuthenticationService {
     });
 
     if (!account) {
-      throw new exceptions.NotFoundException("error.invalidAccount");
+      return;
     }
 
     await sendEmail.sendEmailOtp({
@@ -214,7 +220,7 @@ class AuthenticationService {
     issuer: string;
     lang: enums.LanguageEnum;
   }): Promise<entities.ILoginResponse | void> {
-    const { email, password } = body;
+    const { email, password, FCM } = body;
 
     const LoginTrialsKey = `User::${email}::Login_Trials`;
 
@@ -287,6 +293,23 @@ class AuthenticationService {
       return;
     }
 
+    if (FCM) {
+      const FCMS = await this.notificationService.getFCMs({
+        userId: account._id,
+      });
+
+      await this.notificationService.sendNotifications({
+        tokens: FCMS,
+        title: "welcome",
+        body: "hi hi",
+      });
+
+      await this.notificationService.addFCM({
+        userId: account._id,
+        FCMToken: FCM,
+      });
+    }
+
     const { access_token, refresh_token } =
       await this.tokenService.createLoginCredentials({
         user: account,
@@ -312,13 +335,11 @@ class AuthenticationService {
     });
 
     if (!account) {
-      throw new exceptions.NotFoundException("error.invalidAccount");
+      throw new exceptions.BadRequestException("error.invalidOtp");
     }
 
     if (!account.twoStepVerification) {
-      throw new exceptions.ConflictException(
-        "error.twoStepVerificationNotEnabled",
-      );
+      throw new exceptions.BadRequestException("error.invalidOtp");
     }
 
     await sendEmail.checkOTP({
@@ -393,9 +414,12 @@ class AuthenticationService {
       subject: enums.EmailSubjectEnum.TWO_STEP_VERIFICATION,
     });
 
-    user.twoStepVerification = true;
-    // we use validateModifiedOnly: true cause we remove password from back in all cases and we don't want to validate it.
-    await user.save({ validateModifiedOnly: true });
+    await this.userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: {
+        twoStepVerification: true,
+      },
+    });
 
     await this.cacheService.del({
       key: [
@@ -415,6 +439,7 @@ class AuthenticationService {
     });
   }
 
+  // START RESET PASSWORD
   async requestForgetPasswordCode({
     body,
     lang,
@@ -432,7 +457,7 @@ class AuthenticationService {
     });
 
     if (!account) {
-      throw new exceptions.NotFoundException("error.invalidAccount");
+      return;
     }
 
     await sendEmail.sendEmailOtp({
@@ -457,7 +482,7 @@ class AuthenticationService {
     });
 
     if (!account) {
-      throw new exceptions.NotFoundException("error.invalidAccount");
+      throw new exceptions.BadRequestException("error.invalidOtp");
     }
 
     await sendEmail.checkOTP({
@@ -504,6 +529,7 @@ class AuthenticationService {
 
     return;
   }
+  // END RESET PASSWORD
 
   async rotateToken({
     payload,
@@ -548,9 +574,12 @@ class AuthenticationService {
     const { action } = body;
     switch (action) {
       case enums.LogoutEnum.ALL:
-        user.changeCredentialsTime = new Date();
-        // we use validateModifiedOnly: true cause we remove password from back in all cases and we don't want to validate it.
-        await user.save({ validateModifiedOnly: true });
+        await this.userRepository.findByIdAndUpdate({
+          id: user._id,
+          update: {
+            changeCredentialsTime: new Date(),
+          },
+        });
 
         const userRevokeKeys = await this.cacheService.keys({
           prefix: this.tokenService.userBaseRevokeToken({

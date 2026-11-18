@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
-import { enums, issuer, itf } from "../../common";
+import { enums, issuer, itf, limiter } from "../../common";
 import * as middleware from "../../middleware";
 import as from "./auth.service";
 import * as validators from "./auth.validation";
@@ -67,8 +67,13 @@ router.patch(
   ),
 );
 // -------------------------------------------------- RESEND CONFIRM EMAIL --------------------------------------------------- //
+const resendConfirmEmailLimiterMiddleware = limiter.generateRateLimiter({
+  limit: 5,
+});
+
 router.patch(
   "/resend-confirm-email",
+  resendConfirmEmailLimiterMiddleware,
   middleware.validation(validators.reSendConfirmEmail),
   middleware.responseFormatter(
     async (
@@ -80,7 +85,7 @@ router.patch(
         body: req.validate.body,
         lang: req.lang,
       });
-      return { message: "success.otpSent" };
+      return { message: "success.otpSentIfRegistered" };
     },
   ),
 );
@@ -169,8 +174,13 @@ router.patch(
   ),
 );
 // -------------------------------------------------- REQUEST FORGOT PASSWORD CODE ----------------------------------------- //
+const forgotPasswordLimiterMiddleware = limiter.generateRateLimiter({
+  limit: 5,
+});
+
 router.post(
   "/request-forgot-password-code",
+  forgotPasswordLimiterMiddleware,
   middleware.validation(validators.requestForgetPasswordCode),
   middleware.responseFormatter(
     async (
@@ -183,7 +193,7 @@ router.post(
         lang: req.lang,
       });
 
-      return { message: "success.otpSent" };
+      return { message: "success.otpSentIfRegistered" };
     },
   ),
 );
@@ -263,4 +273,5 @@ router.post(
     },
   ),
 );
+
 export default router;

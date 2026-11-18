@@ -3,6 +3,7 @@ import { enums, fileUpload, itf } from "../../common";
 import * as middleware from "../../middleware";
 import us from "./user.service";
 import * as validators from "./user.validation";
+import * as entities from "./entities/user.entities";
 
 const router = Router({ caseSensitive: true, strict: true });
 
@@ -161,14 +162,16 @@ router.patch(
     },
   ),
 );
-// -------------------------------------------------- PROFILE IMAGE --------------------------------------------------- //
+// -------------------------------------------------- PROFILE IMAGE USING S3 BUCKET --------------------------------------------------- //
 router.patch(
   "/profile-image",
   middleware.authentication(),
   middleware.fileUploadMiddleware({
     isRequired: true,
     customPath: "User",
-    multerMiddleware: fileUpload.createUploader().single("attachment"),
+    multerMiddleware: fileUpload
+      .createUploader({ storageApproach: enums.StorageApproachEnum.DISK })
+      .single("attachment"),
     validation: fileUpload.fileValidation.image,
   }),
   middleware.validation(validators.profileImage),
@@ -177,13 +180,33 @@ router.patch(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<itf.IResponse> => {
+    ): Promise<itf.IResponse<string>> => {
       const image = await us.profileImage({
         user: req.user,
         file: req.validate.file,
       });
 
       return { message: "success.profileImageUpdated", data: image };
+    },
+  ),
+);
+// --------------------------------- PROFILE IMAGE PRE ASSIGNED USING S3 BUCKET PRE ASSIGNED ---------------------------------------- //
+router.patch(
+  "/profile-image-pre-assigned",
+  middleware.authentication(),
+  middleware.validation(validators.profileImagePreAssigned),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse<entities.IProfileImagePreAssignedResponse>> => {
+      const { url } = await us.profileImagePreAssigned({
+        user: req.user,
+        body: req.validate.body,
+      });
+
+      return { message: "success.profileImageUpdated", data: { url } };
     },
   ),
 );
