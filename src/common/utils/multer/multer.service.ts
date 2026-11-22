@@ -1,7 +1,7 @@
-import { Request } from "express";
+import type { Request } from "express";
 import { fileTypeFromBuffer } from "file-type";
 import { readFile, unlink } from "node:fs/promises";
-import { exceptions, tps } from "../../../common";
+import { exceptions, type tps } from "../../../common";
 
 export const fileValidation = {
   image: ["image/jpg", "image/jpeg", "image/png"],

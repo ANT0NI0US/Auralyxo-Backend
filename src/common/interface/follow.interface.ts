@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
-import { enums } from "../../common";
+import type { enums, tps } from "../../common";
 
 export interface IFollow {
-  follower: mongoose.Types.ObjectId;
-  following: mongoose.Types.ObjectId;
+  follower: tps.userIdType;
+  following: tps.userIdType;
   status: enums.FollowStatusEnum;
   createdAt?: Date;
   updatedAt?: Date;

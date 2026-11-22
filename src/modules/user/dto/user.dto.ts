@@ -1,5 +1,5 @@
 import z from "zod";
-import * as validators from "../user.validation";
+import type * as validators from "../user.validation";
 
 export type GetAllUsersDto = z.infer<ReturnType<typeof validators.getAllUsers>>;
 export type GetUserDto = z.infer<ReturnType<typeof validators.getUser>>;

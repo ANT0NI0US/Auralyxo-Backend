@@ -1,16 +1,14 @@
-import { App, cert, initializeApp } from "firebase-admin/app";
+import { type App, cert, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
-import { Types } from "mongoose";
 // import { readFileSync } from "node:fs";
 // import { resolve } from "node:path";
+import { type tps } from "../../common";
 import configService from "../../config.service";
-import { CacheService, cacheService } from "./cache.service";
-
-type userIdType = Types.ObjectId | string;
+import { type CacheService, cacheService } from "./cache.service";
 
 export class NotificationService {
-  private readonly app: App;
-  private cacheService: CacheService;
+  private readonly _app: App;
+  private readonly _cacheService: CacheService;
 
   constructor() {
     /*
@@ -30,18 +28,24 @@ export class NotificationService {
         "utf8",
       ),
     );
-    this.app = initializeApp({
+    this._app = initializeApp({
       credential: cert(secretFile),
     });
-    this.cacheService = cacheService;
+    this._cacheService = cacheService;
   }
 
-  userKey({ userId }: { userId: userIdType }) {
+  userKey({ userId }: { userId: tps.userIdType }) {
     return `user:FCM:${userId.toString()}`;
   }
 
-  async addFCM({ userId, FCMToken }: { userId: userIdType; FCMToken: string }) {
-    return await this.cacheService.addToSet({
+  async addFCM({
+    userId,
+    FCMToken,
+  }: {
+    userId: tps.userIdType;
+    FCMToken: string;
+  }) {
+    return await this._cacheService.addToSet({
       key: this.userKey({ userId }),
       value: FCMToken,
     });
@@ -51,45 +55,43 @@ export class NotificationService {
     userId,
     FCMToken,
   }: {
-    userId: userIdType;
+    userId: tps.userIdType;
     FCMToken: string;
   }) {
-    return await this.cacheService.removeFromSet({
+    return await this._cacheService.removeFromSet({
       key: this.userKey({ userId }),
       value: FCMToken,
     });
   }
 
-  async getFCMs({ userId }: { userId: userIdType }) {
-    return await this.cacheService.getMembers({
+  async getFCMs({ userId }: { userId: tps.userIdType }) {
+    return await this._cacheService.getMembers({
       key: this.userKey({ userId }),
     });
   }
 
-  async hasFCMs({ userId }: { userId: userIdType }) {
-    return await this.cacheService.hasMembers({
+  async hasFCMs({ userId }: { userId: tps.userIdType }) {
+    return await this._cacheService.hasMembers({
       key: this.userKey({ userId }),
     });
   }
 
-  async removeFCMUser({ userId }: { userId: userIdType }) {
-    return await this.cacheService.del({
+  async removeFCMUser({ userId }: { userId: tps.userIdType }) {
+    return await this._cacheService.del({
       key: this.userKey({ userId }),
     });
   }
 
   async sendNotification({
     token,
-    title,
-    body,
+    notification,
   }: {
     token: string;
-    title: string;
-    body: string;
+    notification: { title: string; body: string; imageUrl?: string };
   }) {
-    return getMessaging(this.app).send({
+    return getMessaging(this._app).send({
       token,
-      notification: { title, body },
+      notification,
     });
   }
 
@@ -104,7 +106,7 @@ export class NotificationService {
   }) {
     await Promise.allSettled(
       tokens.map((token) => {
-        return this.sendNotification({ token, title, body });
+        return this.sendNotification({ token, notification: { title, body } });
       }),
     );
   }

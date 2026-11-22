@@ -1,5 +1,5 @@
-import { NextFunction, Request, RequestHandler, Response } from "express";
-import { itf, translate } from "../common";
+import type { NextFunction, Request, RequestHandler, Response } from "express";
+import { type itf, translate } from "../common";
 
 export const responseFormatter = (handler: Function): RequestHandler => {
   return async (

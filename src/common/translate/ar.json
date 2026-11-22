@@ -157,7 +157,9 @@
     "cannotRemoveYourself": "لا يمكنك إزالة نفسك من متابعيك",
     "notYourFollower": "هذا المستخدم لا يتابعك",
     "failToUpload": "فشل تحميل هذا الملف",
-    "concurrentUpdate": "تم تعديل هذه البيانات من طلب آخر، من فضلك حاول مرة أخرى"
+    "concurrentUpdate": "تم تعديل هذه البيانات من طلب آخر، من فضلك حاول مرة أخرى",
+    "missingAssetUrl": "مسار الملف غير موجود",
+    "failToFetchAsset": "فشل جلب هذا الملف"
   },
   "success": {
     "done": "تم بنجاح",

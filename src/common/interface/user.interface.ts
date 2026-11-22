@@ -1,4 +1,4 @@
-import { enums } from "../../common";
+import type { enums } from "../../common";
 
 export interface IUser {
   firstName: string;

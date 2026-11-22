@@ -1,5 +1,5 @@
-import mongoose, { HydratedDocument } from "mongoose";
-import { enums, events, exceptions, itf, security } from "../../common";
+import mongoose, { type HydratedDocument } from "mongoose";
+import { enums, events, exceptions, type itf, security } from "../../common";
 import configService from "../../config.service";
 import { numericValues } from "./numericValues";
 

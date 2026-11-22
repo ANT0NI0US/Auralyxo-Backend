@@ -1,21 +1,21 @@
-import mongoose, {
-  AnyKeys,
-  CreateOptions,
-  DeleteResult,
-  FlattenMaps,
-  HydratedDocument,
+import {
+  type AnyKeys,
+  type CreateOptions,
+  type DeleteResult,
+  type FlattenMaps,
+  type HydratedDocument,
   Model,
-  MongooseBaseQueryOptions,
-  MongooseUpdateQueryOptions,
-  PopulateOptions,
-  ProjectionType,
-  QueryFilter,
-  QueryOptions,
-  UpdateQuery,
-  UpdateWithAggregationPipeline,
-  UpdateWriteOpResult,
+  type MongooseBaseQueryOptions,
+  type MongooseUpdateQueryOptions,
+  type PopulateOptions,
+  type ProjectionType,
+  type QueryFilter,
+  type QueryOptions,
+  type UpdateQuery,
+  type UpdateWithAggregationPipeline,
+  type UpdateWriteOpResult,
 } from "mongoose";
-import { itf } from "../../common";
+import type { itf, tps } from "../../common";
 import configService from "../../config.service";
 
 export abstract class DatabaseRepository<TRawDocType> {
@@ -177,7 +177,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: tps.userIdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean: false }) | null | undefined;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined>;
@@ -187,7 +187,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: tps.userIdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean: true }) | null | undefined;
   }): Promise<FlattenMaps<TRawDocType> | null | undefined>;
@@ -197,7 +197,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: tps.userIdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: QueryOptions<TRawDocType> | null | undefined;
   }): Promise<
@@ -310,7 +310,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     update,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: tps.userIdType;
     update?: UpdateQuery<TRawDocType>;
     options?: QueryOptions<TRawDocType> | null;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined> {
@@ -360,7 +360,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     id,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: tps.userIdType;
     options?: QueryOptions<TRawDocType> | null;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined> {
     return await this.model.findByIdAndDelete(id, options);

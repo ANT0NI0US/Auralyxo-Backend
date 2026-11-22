@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from "express";
-import { enums, exceptions } from "../common";
+import type { NextFunction, Request, Response } from "express";
+import { type enums, exceptions } from "../common";
 
 /*
 SINGLE

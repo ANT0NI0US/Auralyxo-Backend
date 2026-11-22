@@ -1,5 +1,5 @@
-import mongoose, { HydratedDocument } from "mongoose";
-import { enums, itf } from "../../common";
+import mongoose, { type HydratedDocument } from "mongoose";
+import { enums, type itf } from "../../common";
 import { numericValues } from "./numericValues";
 
 const followSchema = new mongoose.Schema<itf.IFollow>(

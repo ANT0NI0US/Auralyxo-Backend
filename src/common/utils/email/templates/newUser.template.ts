@@ -1,5 +1,5 @@
 import { enums, translate, type TranslationKey } from "../../../../common";
-import { models } from "../../../../DB";
+import type { models } from "../../../../DB";
 import { emailLayout } from "./layout.template";
 
 export interface INewUserEmailData {

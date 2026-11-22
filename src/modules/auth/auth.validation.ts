@@ -131,6 +131,8 @@ export const logout = (lang: enums.LanguageEnum) => {
     body: z
       .strictObject({
         action: z.enum(enums.LogoutEnum).default(enums.LogoutEnum.DEVICE),
+        // the FCM token of this device, to stop sending notifications to it
+        FCM: z.string().optional(),
       })
       .prefault({}),
   });

@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { enums } from "../common";
 
 export const language = (req: Request, res: Response, next: NextFunction) => {

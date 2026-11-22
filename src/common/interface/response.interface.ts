@@ -1,4 +1,4 @@
-import { TranslationKey } from "../translate";
+import type { TranslationKey } from "../translate";
 
 export interface IResponse<T = any, Z = any> {
   status?: number;

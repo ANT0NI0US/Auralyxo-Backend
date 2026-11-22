@@ -1,6 +1,10 @@
 import { enums } from "../../../../common";
-import { buildNewUserEmail, INewUserEmailData } from "./newUser.template";
-import { buildOtpEmail, IOtpEmailData, OtpEmailSubject } from "./otp.template";
+import { buildNewUserEmail, type INewUserEmailData } from "./newUser.template";
+import {
+  buildOtpEmail,
+  type IOtpEmailData,
+  type OtpEmailSubject,
+} from "./otp.template";
 
 // each subject comes with its own data → typescript knows the data from the subject
 export type EmailTemplateInput =

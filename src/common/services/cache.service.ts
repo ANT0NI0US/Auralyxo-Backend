@@ -1,18 +1,18 @@
-import { createClient, RedisClientType } from "redis";
+import { createClient, type RedisClientType } from "redis";
 import configService from "../../config.service";
 
 export class CacheService {
-  private readonly client: RedisClientType;
+  private readonly _client: RedisClientType;
   constructor() {
-    this.client = createClient({ url: configService.DB_REDIS_URI });
+    this._client = createClient({ url: configService.DB_REDIS_URI });
     // without this listener a dropped connection crashes the whole process
-    this.client.on("error", (error) => {
+    this._client.on("error", (error) => {
       console.error(`Redis error: ${error.message}`);
     });
   }
 
   async connectRedis() {
-    await this.client.connect();
+    await this._client.connect();
     console.info(`Redis connection stablish successfully`);
   }
 
@@ -28,11 +28,11 @@ export class CacheService {
     if (typeof value == "object") {
       value = JSON.stringify(value);
     }
-    return await this.client.set(key, value, { ...(ttl ? { EX: ttl } : {}) });
+    return await this._client.set(key, value, { ...(ttl ? { EX: ttl } : {}) });
   }
 
   async get({ key }: { key: string }) {
-    let value = await this.client.get(key);
+    let value = await this._client.get(key);
     try {
       return JSON.parse(value as string);
     } catch (error) {
@@ -41,7 +41,7 @@ export class CacheService {
   }
 
   async exist({ key }: { key: string }) {
-    return await this.client.exists(key);
+    return await this._client.exists(key);
   }
 
   async update({ key, value, ttl }: { key: string; value: any; ttl?: number }) {
@@ -52,41 +52,41 @@ export class CacheService {
   }
 
   async del({ key }: { key: string | string[] }) {
-    return await this.client.del(key);
+    return await this._client.del(key);
   }
 
   async keys({ prefix = "" }: { prefix: string }) {
-    return await this.client.keys(`${prefix}*`);
+    return await this._client.keys(`${prefix}*`);
   }
 
   async ttl({ key }: { key: string }) {
-    return await this.client.ttl(key);
+    return await this._client.ttl(key);
   }
 
   async expire({ key, ttl }: { key: string; ttl: number }) {
-    return await this.client.expire(key, ttl);
+    return await this._client.expire(key, ttl);
   }
 
   async incrBy({ key, value = 1 }: { key: string; value?: number }) {
-    return await this.client.incrBy(key, value);
+    return await this._client.incrBy(key, value);
   }
 
   // --------------------------------------------------------- SETS --------------------------------------------------------------------
 
   async addToSet({ key, value }: { key: string; value: string }) {
-    return await this.client.sAdd(key, value);
+    return await this._client.sAdd(key, value);
   }
 
   async removeFromSet({ key, value }: { key: string; value: string }) {
-    return await this.client.sRem(key, value);
+    return await this._client.sRem(key, value);
   }
 
   async getMembers({ key }: { key: string }) {
-    return await this.client.sMembers(key);
+    return await this._client.sMembers(key);
   }
 
   async hasMembers({ key }: { key: string }) {
-    return await this.client.sCard(key);
+    return await this._client.sCard(key);
   }
 }
 

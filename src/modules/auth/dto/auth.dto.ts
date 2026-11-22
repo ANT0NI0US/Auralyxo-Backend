@@ -1,5 +1,5 @@
 import z from "zod";
-import * as validators from "../auth.validation";
+import type * as validators from "../auth.validation";
 
 export type SignupLoginWithGmailDto = z.infer<
   ReturnType<typeof validators.signupLoginWithGmail>

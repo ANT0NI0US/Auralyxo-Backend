@@ -1,5 +1,5 @@
-import { enums, tps } from "../../common";
-import { models } from "../../DB";
+import type { enums, tps } from "../../common";
+import type { models } from "../../DB";
 
 declare module "express-serve-static-core" {
   interface Request {

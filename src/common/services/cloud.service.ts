@@ -1,33 +1,33 @@
 import {
-  CompleteMultipartUploadCommandOutput,
+  type CompleteMultipartUploadCommandOutput,
   DeleteObjectCommand,
-  DeleteObjectCommandOutput,
+  type DeleteObjectCommandOutput,
   DeleteObjectsCommand,
-  DeleteObjectsCommandOutput,
+  type DeleteObjectsCommandOutput,
   GetObjectCommand,
-  GetObjectCommandOutput,
+  type GetObjectCommandOutput,
   ListObjectsV2Command,
-  ListObjectsV2CommandOutput,
+  type ListObjectsV2CommandOutput,
   ObjectCannedACL,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { Progress, Upload } from "@aws-sdk/lib-storage";
+import { type Progress, Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 // import { createReadStream } from "node:fs";
 import {
   // enums,
   exceptions,
-  tps,
+  type tps,
 } from "../../common";
 import configService from "../../config.service";
 
 export class CloudService {
-  private readonly client: S3Client;
+  private readonly _client: S3Client;
 
   constructor() {
-    this.client = new S3Client({
+    this._client = new S3Client({
       region: configService.AWS_REGION,
       credentials: {
         accessKeyId: configService.AWS_ACCESS_KEY_ID,
@@ -72,9 +72,9 @@ export class CloudService {
       throw new exceptions.BadRequestException("error.failToUpload");
     }
 
-    await this.client.send(command);
+    await this._client.send(command);
     // how to use the url: dos 3la al url aly hyrg3 dh tmm b3dha 5ly al method put b3d kdh a5tar body -> binary w nzl al sora 2bl al expiresIn
-    const url = await getSignedUrl(this.client, command, { expiresIn });
+    const url = await getSignedUrl(this._client, command, { expiresIn });
     return { url, Key: command.input.Key };
   }
 
@@ -101,7 +101,7 @@ export class CloudService {
     });
 
     // how to use the url: dos 3la al url aly hyrg3 dh tmm b3dha 5ly al method put b3d kdh a5tar body -> binary w nzl al sora 2bl al expiresIn
-    const url = await getSignedUrl(this.client, command, { expiresIn });
+    const url = await getSignedUrl(this._client, command, { expiresIn });
 
     return url;
   }
@@ -138,7 +138,7 @@ export class CloudService {
       throw new exceptions.BadRequestException("error.failToUpload");
     }
 
-    await this.client.send(command);
+    await this._client.send(command);
 
     return command.input.Key;
   }
@@ -163,7 +163,7 @@ export class CloudService {
     partSize?: number;
   }): Promise<CompleteMultipartUploadCommandOutput> {
     const uploadFile = new Upload({
-      client: this.client,
+      client: this._client,
       params: {
         Bucket,
         Key: this.generateKey({ path, file }),
@@ -273,7 +273,7 @@ export class CloudService {
       Key,
     });
 
-    return await this.client.send(command);
+    return await this._client.send(command);
   }
 
   async deleteAsset({
@@ -288,7 +288,7 @@ export class CloudService {
       Key,
     });
 
-    return await this.client.send(command);
+    return await this._client.send(command);
   }
 
   async deleteAssets({
@@ -309,7 +309,85 @@ export class CloudService {
       },
     });
 
-    return await this.client.send(command);
+    return await this._client.send(command);
+  }
+
+  async uploadAssetWithSize({
+    path = "General",
+    file,
+    isLarge = false,
+  }: {
+    path?: string;
+    file: tps.FileType;
+    isLarge?: boolean;
+  }): Promise<string> {
+    if (isLarge) {
+      const { Key } = await this.uploadLargeAsset({ path, file });
+      return Key as string;
+    }
+    return await this.uploadAsset({ path, file });
+  }
+
+  async uploadAssetsWithSize({
+    path = "General",
+    files,
+    isLarge = false,
+  }: {
+    path?: string;
+    files: tps.FileType[];
+    isLarge?: boolean;
+  }): Promise<string[]> {
+    return isLarge
+      ? await this.uploadLargeAssets({ path, files })
+      : await this.uploadAssets({ path, files });
+  }
+
+  async replaceAsset({
+    path = "General",
+    file,
+    oldKey,
+    isLarge = false,
+    onUploaded,
+  }: {
+    path?: string;
+    file: tps.FileType;
+    oldKey?: string | undefined;
+    isLarge?: boolean;
+    onUploaded: (newKey: string) => Promise<void>;
+  }): Promise<string> {
+    const newKey = await this.uploadAssetWithSize({ path, file, isLarge });
+
+    await onUploaded(newKey);
+
+    if (oldKey) {
+      await this.deleteAsset({ Key: oldKey });
+    }
+
+    return newKey;
+  }
+
+  async replaceAssets({
+    path = "General",
+    files,
+    oldKeys = [],
+    isLarge = false,
+    onUploaded,
+  }: {
+    path?: string;
+    files: tps.FileType[];
+    oldKeys?: string[] | undefined;
+    isLarge?: boolean;
+    onUploaded: (newKeys: string[]) => Promise<void>;
+  }): Promise<string[]> {
+    const newKeys = await this.uploadAssetsWithSize({ path, files, isLarge });
+
+    await onUploaded(newKeys);
+
+    if (oldKeys.length) {
+      await this.deleteAssets({ Keys: oldKeys });
+    }
+
+    return newKeys;
   }
 
   async listFileDir({
@@ -324,7 +402,7 @@ export class CloudService {
       Prefix: `${configService.APPLICATION_NAME}/${prefix}`,
     });
 
-    return await this.client.send(command);
+    return await this._client.send(command);
   }
 
   async deleteFileDir({
@@ -342,7 +420,9 @@ export class CloudService {
     }
     const Keys = Contents.map((ele) => ele.Key) as string[];
 
-    await this.deleteAssets({ Keys, Bucket });
+    if (Keys && Keys.length) {
+      await this.deleteAssets({ Keys, Bucket });
+    }
   }
 }
 

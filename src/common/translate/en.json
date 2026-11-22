@@ -157,7 +157,9 @@
     "cannotRemoveYourself": "You can not remove yourself from your followers",
     "notYourFollower": "This user does not follow you",
     "failToUpload": "Fail to upload this file",
-    "concurrentUpdate": "This data was changed by another request, please try again"
+    "concurrentUpdate": "This data was changed by another request, please try again",
+    "missingAssetUrl": "The file path is missing",
+    "failToFetchAsset": "Failed to fetch this file"
   },
   "success": {
     "done": "Done",

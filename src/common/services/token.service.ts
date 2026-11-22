@@ -1,38 +1,42 @@
-import jwt, { Secret, SignOptions } from "jsonwebtoken";
-import mongoose from "mongoose";
+import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
-import { enums, exceptions, objectId, security, tps } from "../../common";
+import { enums, exceptions, objectId, security, type tps } from "../../common";
 import configService from "../../config.service";
 import { models, queries } from "../../DB";
-import { cacheService, CacheService } from "./cache.service";
+import { cacheService, type CacheService } from "./cache.service";
 
-type UserId = mongoose.Types.ObjectId | string;
 type signatureType = {
   accessSignature: string;
   refreshSignature: string;
 };
 
 export class TokenService {
-  private readonly userRepository: queries.UserRepository;
-  private readonly cacheService: CacheService;
+  private readonly _userRepository: queries.UserRepository;
+  private readonly _cacheService: CacheService;
 
   constructor() {
-    this.userRepository = new queries.UserRepository();
-    this.cacheService = cacheService;
+    this._userRepository = new queries.UserRepository();
+    this._cacheService = cacheService;
   }
 
   // USER PROFILE THAT IS STORED IN REDIS
-  userBaseProfile({ userId }: { userId: UserId }): string {
+  userBaseProfile({ userId }: { userId: tps.userIdType }): string {
     return `User::${userId.toString()}::Profile`;
   }
 
   // BASE REVOKE TOKEN WE USE IT WHEN WE WANNA TO DELETE ALL LOGIN DEVICES + IN userRevokeToken
-  userBaseRevokeToken({ userId }: { userId: UserId }): string {
+  userBaseRevokeToken({ userId }: { userId: tps.userIdType }): string {
     return `User::${userId.toString()}::Revoke_Token`;
   }
 
   // USER REVOKE TOKEN THAT IS STORED IN REDIS
-  userRevokeToken({ userId, jti }: { userId: UserId; jti: string }): string {
+  userRevokeToken({
+    userId,
+    jti,
+  }: {
+    userId: tps.userIdType;
+    jti: string;
+  }): string {
     return `${this.userBaseRevokeToken({ userId })}::${jti}`;
   }
 
@@ -139,7 +143,7 @@ export class TokenService {
 
     // get an unauthorized exception when the revoked token is already services.exist
     if (
-      await this.cacheService.exist({
+      await this._cacheService.exist({
         key: this.userRevokeToken({ userId: payload.sub, jti: payload.jti }),
       })
     ) {
@@ -147,7 +151,7 @@ export class TokenService {
     }
 
     // check if the user profile is already cached in redis
-    const cachedUser = await this.cacheService.get({
+    const cachedUser = await this._cacheService.get({
       key: this.userBaseProfile({ userId: payload.sub }),
     });
 
@@ -156,7 +160,7 @@ export class TokenService {
     // hydrate() rebuilds a real document from it without hitting the database.
     const user = cachedUser
       ? models.UserModel.hydrate(cachedUser)
-      : await this.userRepository.findOne({
+      : await this._userRepository.findOne({
           filter: {
             _id: objectId.toObjectId({ id: payload.sub }),
             paranoid: false,
@@ -175,7 +179,7 @@ export class TokenService {
 
     // cache the user profile in redis for 1 day.
     if (!cachedUser) {
-      await this.cacheService.set({
+      await this._cacheService.set({
         key: this.userBaseProfile({ userId: payload.sub }),
         value: user,
         ttl: configService.USER_PROFILE_CACHE_TTL,
@@ -252,19 +256,19 @@ export class TokenService {
       payload.iat + configService.REFRESH_TOKEN_EXPIRES_IN;
     // const ttl = refreshExpiresIn - consumedTime;
     const ttl = refreshExpiresIn - Math.floor(Date.now() / 1000);
-    await this.cacheService.set({
+    await this._cacheService.set({
       key: this.userRevokeToken({ userId: payload.sub, jti: payload.jti }),
       value: payload.jti,
       ttl,
     });
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: this.userBaseProfile({ userId: payload.sub }),
     }); // delete the user profile from redis cache
   }
 
   async basicAuth({ email, password }: { email: string; password: string }) {
     // Get the account that has the same email and signup with system and the confirmationEmail is true.
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,

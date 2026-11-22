@@ -1,6 +1,6 @@
 export * as exceptions from "./exceptions";
-export * as itf from "./interface";
-export * as tps from "./types";
+export type * as itf from "./interface";
+export type * as tps from "./types";
 export * as enums from "./enum";
 export * as security from "./security";
 export { sendEmail, fileUpload, objectId, issuer, limiter } from "./utils";

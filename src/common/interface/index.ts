@@ -1,5 +1,5 @@
-export * from "./error.interface";
-export * from "./response.interface";
-export * from "./user.interface";
-export * from "./paginate.interface";
-export * from "./follow.interface";
+export type * from "./error.interface";
+export type * from "./response.interface";
+export type * from "./user.interface";
+export type * from "./paginate.interface";
+export type * from "./follow.interface";

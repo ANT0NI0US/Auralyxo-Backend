@@ -1,4 +1,4 @@
-import nodemailer, { Attachment } from "nodemailer";
+import nodemailer, { type Attachment } from "nodemailer";
 import { enums, events, exceptions, security, services } from "../../../common";
 import configService from "../../../config.service";
 import { transporter } from "./email.config";

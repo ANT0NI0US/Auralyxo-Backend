@@ -1,9 +1,14 @@
-import { NextFunction, Request, Response, Router } from "express";
-import { enums, fileUpload, itf } from "../../common";
+import {
+  type NextFunction,
+  type Request,
+  type Response,
+  Router,
+} from "express";
+import { enums, fileUpload, type itf } from "../../common";
 import * as middleware from "../../middleware";
 import us from "./user.service";
 import * as validators from "./user.validation";
-import * as entities from "./entities/user.entities";
+import type * as entities from "./entities/user.entities";
 
 const router = Router({ caseSensitive: true, strict: true });
 

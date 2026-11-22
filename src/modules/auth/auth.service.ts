@@ -1,35 +1,35 @@
-import { OAuth2Client, TokenPayload } from "google-auth-library";
+import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import {
   enums,
   exceptions,
   security,
   sendEmail,
   services,
-  tps,
+  type tps,
 } from "../../common";
 import configService from "../../config.service";
-import { models, queries } from "../../DB";
-import * as dto from "./dto/auth.dto";
-import * as entities from "./entities/auth.entities";
+import { type models, queries } from "../../DB";
+import type * as dto from "./dto/auth.dto";
+import type * as entities from "./entities/auth.entities";
 
 class AuthenticationService {
-  private userRepository: queries.UserRepository;
-  private cacheService: services.CacheService;
-  private tokenService: services.TokenService;
-  private notificationService: services.NotificationService;
-  private client: OAuth2Client;
+  private readonly _userRepository: queries.UserRepository;
+  private readonly _cacheService: services.CacheService;
+  private readonly _tokenService: services.TokenService;
+  private readonly _notificationService: services.NotificationService;
+  private readonly _client: OAuth2Client;
 
   constructor() {
-    this.userRepository = new queries.UserRepository();
-    this.cacheService = services.cacheService;
-    this.tokenService = services.tokenService;
-    this.notificationService = services.notificationService;
-    this.client = new OAuth2Client();
+    this._userRepository = new queries.UserRepository();
+    this._cacheService = services.cacheService;
+    this._tokenService = services.tokenService;
+    this._notificationService = services.notificationService;
+    this._client = new OAuth2Client();
   }
 
   private async verifyGoogleAccount(idToken: string): Promise<TokenPayload> {
     // google-auth-library throws a plain Error for a fake / expired / wrong-audience token
-    const ticket = await this.client
+    const ticket = await this._client
       .verifyIdToken({
         idToken,
         audience: configService.WEB_CLIENT_IDS,
@@ -59,7 +59,7 @@ class AuthenticationService {
       throw new exceptions.BadRequestException("error.emailNotVerified");
     }
 
-    const existingEmail = await this.userRepository.findOne({
+    const existingEmail = await this._userRepository.findOne({
       filter: { email, paranoid: false },
     });
     if (existingEmail) {
@@ -73,7 +73,7 @@ class AuthenticationService {
       }
       // login with gmail
       const { access_token, refresh_token } =
-        await this.tokenService.createLoginCredentials({
+        await this._tokenService.createLoginCredentials({
           user: existingEmail,
           options: { issuer },
         });
@@ -81,7 +81,7 @@ class AuthenticationService {
       return { status: 200, access_token, refresh_token };
     }
     // signup with gmail
-    const account = await this.userRepository.create({
+    const account = await this._userRepository.create({
       data: {
         firstName: given_name ?? email.split("@")[0],
         lastName: family_name,
@@ -93,7 +93,7 @@ class AuthenticationService {
     });
 
     const { access_token, refresh_token } =
-      await this.tokenService.createLoginCredentials({
+      await this._tokenService.createLoginCredentials({
         user: account,
         options: { issuer },
       });
@@ -110,7 +110,7 @@ class AuthenticationService {
   }): Promise<void> {
     const { email } = body;
 
-    const existingEmail = await this.userRepository.findOne({
+    const existingEmail = await this._userRepository.findOne({
       filter: { email, paranoid: false },
     });
 
@@ -122,7 +122,7 @@ class AuthenticationService {
       throw new exceptions.ConflictException("error.emailExists");
     }
 
-    await this.userRepository.create({
+    await this._userRepository.create({
       data: body,
     });
 
@@ -142,7 +142,7 @@ class AuthenticationService {
     issuer: string;
   }): Promise<entities.ILoginResponse> {
     const { email, otp } = body;
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -160,15 +160,15 @@ class AuthenticationService {
       subject: enums.EmailSubjectEnum.CONFIRM_EMAIL,
     });
 
-    await this.userRepository.findByIdAndUpdate({
+    await this._userRepository.findByIdAndUpdate({
       id: account._id,
       update: {
         confirmEmail: new Date(),
       },
     });
 
-    await this.cacheService.del({
-      key: await this.cacheService.keys({
+    await this._cacheService.del({
+      key: await this._cacheService.keys({
         prefix: sendEmail.UserEmailKey({
           email,
           subject: enums.EmailSubjectEnum.CONFIRM_EMAIL,
@@ -177,7 +177,7 @@ class AuthenticationService {
     });
 
     const { access_token, refresh_token } =
-      await this.tokenService.createLoginCredentials({
+      await this._tokenService.createLoginCredentials({
         user: account,
         options: { issuer },
       });
@@ -193,7 +193,7 @@ class AuthenticationService {
     lang: enums.LanguageEnum;
   }): Promise<void> {
     const { email } = body;
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -226,7 +226,7 @@ class AuthenticationService {
 
     // 1) check the block FIRST, before touching the password at all
     const currentTrials =
-      (await this.cacheService.get({
+      (await this._cacheService.get({
         key: LoginTrialsKey,
       })) ?? 0;
 
@@ -235,7 +235,7 @@ class AuthenticationService {
     }
 
     // Get the account that has the same email and signup with system and the confirmationEmail is true.
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -258,7 +258,7 @@ class AuthenticationService {
 
     // 3) wrong password → increase the trials and block when reaching the limit
     if (!match) {
-      const finalTrials = await this.cacheService.incrBy({
+      const finalTrials = await this._cacheService.incrBy({
         key: LoginTrialsKey,
       });
 
@@ -266,7 +266,7 @@ class AuthenticationService {
         finalTrials == 1 ||
         finalTrials == configService.MAX_INCORRECT_PASSWORD_ATTEMPTS
       ) {
-        await this.cacheService.expire({
+        await this._cacheService.expire({
           key: LoginTrialsKey,
           ttl: configService.BLOCK_OTP_TIME,
         });
@@ -275,7 +275,7 @@ class AuthenticationService {
     }
 
     // 4) correct password and not blocked → reset the trials
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: LoginTrialsKey,
     });
 
@@ -294,24 +294,24 @@ class AuthenticationService {
     }
 
     if (FCM) {
-      const FCMS = await this.notificationService.getFCMs({
+      const FCMS = await this._notificationService.getFCMs({
         userId: account._id,
       });
 
-      await this.notificationService.sendNotifications({
+      await this._notificationService.sendNotifications({
         tokens: FCMS,
         title: "welcome",
         body: "hi hi",
       });
 
-      await this.notificationService.addFCM({
+      await this._notificationService.addFCM({
         userId: account._id,
         FCMToken: FCM,
       });
     }
 
     const { access_token, refresh_token } =
-      await this.tokenService.createLoginCredentials({
+      await this._tokenService.createLoginCredentials({
         user: account,
         options: { issuer },
       });
@@ -327,7 +327,7 @@ class AuthenticationService {
     issuer: string;
   }): Promise<entities.ILoginResponse> {
     const { email, otp } = body;
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -348,7 +348,7 @@ class AuthenticationService {
       subject: enums.EmailSubjectEnum.TWO_STEP_VERIFICATION,
     });
 
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: [
         sendEmail.UserEmailKey({
           email,
@@ -362,7 +362,7 @@ class AuthenticationService {
     });
 
     const { access_token, refresh_token } =
-      await this.tokenService.createLoginCredentials({
+      await this._tokenService.createLoginCredentials({
         user: account,
         options: { issuer },
       });
@@ -414,14 +414,14 @@ class AuthenticationService {
       subject: enums.EmailSubjectEnum.TWO_STEP_VERIFICATION,
     });
 
-    await this.userRepository.findByIdAndUpdate({
+    await this._userRepository.findByIdAndUpdate({
       id: user._id,
       update: {
         twoStepVerification: true,
       },
     });
 
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: [
         sendEmail.UserEmailKey({
           email: user.email,
@@ -434,8 +434,8 @@ class AuthenticationService {
       ],
     });
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
   }
 
@@ -448,7 +448,7 @@ class AuthenticationService {
     lang: enums.LanguageEnum;
   }) {
     const { email } = body;
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -473,7 +473,7 @@ class AuthenticationService {
     body: dto.VerifyForgotPasswordCodeDto["body"];
   }) {
     const { email, otp } = body;
-    const account = await this.userRepository.findOne({
+    const account = await this._userRepository.findOne({
       filter: {
         email,
         provider: enums.ProviderEnum.SYSTEM,
@@ -506,12 +506,12 @@ class AuthenticationService {
     await account.save();
 
     const [userRevokeKeys, userEmailKeys] = await Promise.all([
-      this.cacheService.keys({
-        prefix: this.tokenService.userBaseRevokeToken({
+      this._cacheService.keys({
+        prefix: this._tokenService.userBaseRevokeToken({
           userId: account._id,
         }),
       }),
-      this.cacheService.keys({
+      this._cacheService.keys({
         prefix: sendEmail.UserEmailKey({
           email,
           subject: enums.EmailSubjectEnum.FORGOT_PASSWORD,
@@ -519,11 +519,11 @@ class AuthenticationService {
       }),
     ]);
 
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: [
         ...userRevokeKeys,
         ...userEmailKeys,
-        this.tokenService.userBaseProfile({ userId: account._id }),
+        this._tokenService.userBaseProfile({ userId: account._id }),
       ],
     });
 
@@ -550,11 +550,11 @@ class AuthenticationService {
 
     // revoke the old access + refresh tokens (they share the same jti),
     // so the old refresh token can't be used again after this rotate.
-    await this.tokenService.createRevokeToken({ payload });
+    await this._tokenService.createRevokeToken({ payload });
 
     // expires in refresh token REFRESH_TOKEN_EXPIRES_IN - (Math.ceil(Date.now() / 1000)) - payload.iat depend on the requirements.
     const { access_token, refresh_token } =
-      await this.tokenService.createLoginCredentials({
+      await this._tokenService.createLoginCredentials({
         user,
         options: { issuer },
       });
@@ -571,33 +571,43 @@ class AuthenticationService {
     user: models.HUser;
     body: dto.LogoutDto["body"];
   }) {
-    const { action } = body;
+    const { action, FCM } = body;
     switch (action) {
       case enums.LogoutEnum.ALL:
-        await this.userRepository.findByIdAndUpdate({
+        // logged out from every device → no device should receive notifications
+        await this._notificationService.removeFCMUser({ userId: user._id });
+
+        await this._userRepository.findByIdAndUpdate({
           id: user._id,
           update: {
             changeCredentialsTime: new Date(),
           },
         });
 
-        const userRevokeKeys = await this.cacheService.keys({
-          prefix: this.tokenService.userBaseRevokeToken({
+        const userRevokeKeys = await this._cacheService.keys({
+          prefix: this._tokenService.userBaseRevokeToken({
             userId: payload.sub,
           }),
         });
 
-        await this.cacheService.del({
+        await this._cacheService.del({
           key: [
             ...userRevokeKeys,
-            this.tokenService.userBaseProfile({ userId: payload.sub }),
+            this._tokenService.userBaseProfile({ userId: payload.sub }),
           ],
         });
 
         break;
 
       default:
-        await this.tokenService.createRevokeToken({ payload });
+        await this._tokenService.createRevokeToken({ payload });
+        // logged out from this device only → remove its FCM token
+        if (FCM) {
+          await this._notificationService.removeFCM({
+            userId: user._id,
+            FCMToken: FCM,
+          });
+        }
         break;
     }
     return;

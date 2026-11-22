@@ -1,4 +1,4 @@
-import { FlattenMaps, HydratedDocument } from "mongoose";
+import type { FlattenMaps, HydratedDocument } from "mongoose";
 
 export interface IPaginate<T> {
   totalPages: number;

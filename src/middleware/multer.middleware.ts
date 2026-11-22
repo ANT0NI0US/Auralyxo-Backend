@@ -1,4 +1,4 @@
-import { NextFunction, Request, RequestHandler, Response } from "express";
+import type { NextFunction, Request, RequestHandler, Response } from "express";
 import multer from "multer";
 import { exceptions, fileUpload, type TranslationKey } from "../common";
 

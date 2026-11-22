@@ -6,25 +6,27 @@ import {
   objectId,
   security,
   services,
-  tps,
+  type tps,
 } from "../../common";
-import { models, queries } from "../../DB";
-import * as dto from "./dto/user.dto";
-import * as entities from "./entities/user.entities";
+import { type models, queries } from "../../DB";
+import type * as dto from "./dto/user.dto";
+import type * as entities from "./entities/user.entities";
 
 class UserService {
-  private userRepository: queries.UserRepository;
-  private followRepository: queries.FollowRepository;
-  private cacheService: services.CacheService;
-  private tokenService: services.TokenService;
-  private cloudService: services.CloudService;
+  private readonly _userRepository: queries.UserRepository;
+  private readonly _followRepository: queries.FollowRepository;
+  private readonly _cacheService: services.CacheService;
+  private readonly _tokenService: services.TokenService;
+  private readonly _cloudService: services.CloudService;
+  private readonly _notificationService: services.NotificationService;
 
   constructor() {
-    this.userRepository = new queries.UserRepository();
-    this.followRepository = new queries.FollowRepository();
-    this.cacheService = services.cacheService;
-    this.tokenService = services.tokenService;
-    this.cloudService = services.cloudService;
+    this._userRepository = new queries.UserRepository();
+    this._followRepository = new queries.FollowRepository();
+    this._cacheService = services.cacheService;
+    this._tokenService = services.tokenService;
+    this._cloudService = services.cloudService;
+    this._notificationService = services.notificationService;
   }
 
   private async followList({
@@ -42,7 +44,7 @@ class UserService {
     matchField: "follower" | "following";
     showField: "follower" | "following";
   }) {
-    const targetUser = await this.userRepository.findOne({
+    const targetUser = await this._userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }) },
       projection: "visibility",
     });
@@ -55,7 +57,7 @@ class UserService {
       targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE &&
       !viewer._id.equals(targetUser._id)
     ) {
-      const isFollower = await this.followRepository.findOne({
+      const isFollower = await this._followRepository.findOne({
         filter: {
           follower: viewer._id,
           following: targetUser._id,
@@ -69,7 +71,7 @@ class UserService {
       }
     }
 
-    const data = await this.followRepository.paginate({
+    const data = await this._followRepository.paginate({
       filter: {
         [matchField]: targetUser._id,
         status: enums.FollowStatusEnum.ACCEPTED,
@@ -118,7 +120,7 @@ class UserService {
         break;
     }
 
-    const data = await this.userRepository.paginate({
+    const data = await this._userRepository.paginate({
       filter: {
         role: { $ne: enums.RoleEnum.ADMIN },
         ...filter,
@@ -140,7 +142,7 @@ class UserService {
   async getUser({ params }: { params: dto.GetUserDto["params"] }) {
     const { userId } = params;
 
-    const user = await this.userRepository.findOne({
+    const user = await this._userRepository.findOne({
       filter: {
         _id: objectId.toObjectId({ id: userId }),
         role: { $ne: enums.RoleEnum.ADMIN },
@@ -166,12 +168,12 @@ class UserService {
     if (updatedData.phone) {
       updatedData.phone = await security.encrypt(updatedData.phone);
     }
-    const updatedUser = await this.userRepository.findByIdAndUpdate({
+    const updatedUser = await this._userRepository.findByIdAndUpdate({
       id: user._id,
       update: updatedData,
     });
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
 
     if (updatedUser?.phone) {
@@ -182,7 +184,7 @@ class UserService {
 
   async shareProfile({ params }: { params: dto.ShareProfileDto["params"] }) {
     const { userId } = params;
-    const user = await this.userRepository.findById({
+    const user = await this._userRepository.findById({
       id: new Types.ObjectId(userId),
       projection: "firstName lastName image coverImages gender visibility",
     });
@@ -202,19 +204,19 @@ class UserService {
   async deleteProfileImage({ user }: { user: models.HUser }) {
     const profileImageUrl = user.image;
 
-    await this.userRepository.findByIdAndUpdate({
+    await this._userRepository.findByIdAndUpdate({
       id: user._id,
       update: {
         $unset: { image: 1 },
       },
     });
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
 
     if (profileImageUrl) {
-      await this.cloudService.deleteAsset({ Key: profileImageUrl });
+      await this._cloudService.deleteAsset({ Key: profileImageUrl });
     }
 
     return;
@@ -228,29 +230,45 @@ class UserService {
     user: models.HUser;
     files: dto.CoverImagesDto["files"];
   }) {
-    const oldCoverImages = user.coverImages;
+    // const oldCoverImages = user.coverImages;
 
-    const newCoverImages = await this.cloudService.uploadAssets({
+    // const newCoverImages = await this._cloudService.uploadAssets({
+    //   files: files as tps.FileType[],
+    //   path: `User/${user._id.toString()}/cover-images`,
+    // });
+
+    // await this._userRepository.findByIdAndUpdate({
+    //   id: user._id,
+    //   update: {
+    //     coverImages: newCoverImages,
+    //   },
+    // });
+
+    // await this._cacheService.del({
+    //   key: this._tokenService.userBaseProfile({ userId: user._id }),
+    // });
+
+    // if (oldCoverImages?.length) {
+    //   await this._cloudService.deleteAssets({ Keys: oldCoverImages });
+    // }
+
+    // return newCoverImages;
+
+    return await this._cloudService.replaceAssets({
       files: files as tps.FileType[],
       path: `User/${user._id.toString()}/cover-images`,
-    });
+      oldKeys: user.coverImages,
+      onUploaded: async (newKeys) => {
+        await this._userRepository.findByIdAndUpdate({
+          id: user._id,
+          update: { coverImages: newKeys },
+        });
 
-    await this.userRepository.findByIdAndUpdate({
-      id: user._id,
-      update: {
-        coverImages: newCoverImages,
+        await this._cacheService.del({
+          key: this._tokenService.userBaseProfile({ userId: user._id }),
+        });
       },
     });
-
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
-    });
-
-    if (oldCoverImages?.length) {
-      await this.cloudService.deleteAssets({ Keys: oldCoverImages });
-    }
-
-    return newCoverImages;
   }
 
   // * using s3 bucket
@@ -262,16 +280,16 @@ class UserService {
     file: dto.ProfileImageDto["file"];
   }) {
     // keep the old image before overwriting it
-    const oldImage = user.image;
+    // const oldImage = user.image;
 
     /*
     * using uploadAsset
-    const newImage = await this.cloudService.uploadAsset({
+    const newImage = await this._cloudService.uploadAsset({
       file: file as tps.FileType,
       path: `User/${user._id.toString()}/profile`,
     });
 
-    await this.userRepository.findByIdAndUpdate({
+    await this._userRepository.findByIdAndUpdate({
       id: user._id,
       update: {
         image: newImage,
@@ -280,29 +298,45 @@ class UserService {
     */
 
     // using uploadLargeAsset
-    const newImage = await this.cloudService.uploadLargeAsset({
-      // storageApproach: enums.StorageApproachEnum.MEMORY,
-      file: file as tps.FileType,
-      path: `User/${user._id.toString()}/profile`,
-    });
+    // const newImage = await this._cloudService.uploadLargeAsset({
+    //   // storageApproach: enums.StorageApproachEnum.MEMORY,
+    //   file: file as tps.FileType,
+    //   path: `User/${user._id.toString()}/profile`,
+    // });
 
-    await this.userRepository.findByIdAndUpdate({
-      id: user._id,
-      update: {
-        image: newImage.Key as string,
-      },
-    });
+    // await this._userRepository.findByIdAndUpdate({
+    //   id: user._id,
+    //   update: {
+    //     image: newImage.Key as string,
+    //   },
+    // });
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
-    });
+    // await this._cacheService.del({
+    //   key: this._tokenService.userBaseProfile({ userId: user._id }),
+    // });
 
     // remove the old image only after the new one is saved
-    if (oldImage) {
-      await this.cloudService.deleteAsset({ Key: oldImage });
-    }
+    // if (oldImage) {
+    //   await this._cloudService.deleteAsset({ Key: oldImage });
+    // }
 
-    return newImage.Key as string;
+    // return newImage.Key as string;
+
+    return await this._cloudService.replaceAsset({
+      file: file as tps.FileType,
+      path: `User/${user._id.toString()}/profile`,
+      oldKey: user.image,
+      onUploaded: async (newKey) => {
+        await this._userRepository.findByIdAndUpdate({
+          id: user._id,
+          update: { image: newKey },
+        });
+
+        await this._cacheService.del({
+          key: this._tokenService.userBaseProfile({ userId: user._id }),
+        });
+      },
+    });
   }
 
   // * using s3 bucket pre assigned
@@ -321,19 +355,19 @@ class UserService {
     Originalname : antonious.jpg
     */
     const { ContentType, Originalname } = body;
-    const { url } = await this.cloudService.createUploadPreSignedAssetLink({
+    const { url } = await this._cloudService.createUploadPreSignedAssetLink({
       ContentType,
       Originalname,
       path: `User/${user._id.toString()}/profile`,
     });
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
 
     // remove the old image only after the new one is saved
     if (oldImage) {
-      await this.cloudService.deleteAsset({ Key: oldImage });
+      await this._cloudService.deleteAsset({ Key: oldImage });
     }
 
     return { url };
@@ -357,7 +391,7 @@ class UserService {
     }
 
     // paranoid: false → find the user even if he is archived (to be able to activate him)
-    const targetUser = await this.userRepository.findOne({
+    const targetUser = await this._userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }), paranoid: false },
       projection: "role status",
     });
@@ -378,7 +412,7 @@ class UserService {
     // the update hook will:
     // - make the filter status = the opposite one (ACTIVE needs ARCHIVE and vice versa)
     // - set changeStatusAt = new Date()
-    const updatedUser = await this.userRepository.findByIdAndUpdate({
+    const updatedUser = await this._userRepository.findByIdAndUpdate({
       id: targetUser._id,
       update: {
         status,
@@ -394,9 +428,16 @@ class UserService {
       throw new exceptions.ConflictException("error.statusAlreadySet");
     }
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: updatedUser._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: updatedUser._id }),
     });
+
+    // archived → his devices must stop receiving notifications (he logs in again after activation)
+    if (status == enums.AccountStatusEnum.ARCHIVE) {
+      await this._notificationService.removeFCMUser({
+        userId: updatedUser._id,
+      });
+    }
 
     return {
       userId: updatedUser._id,
@@ -421,7 +462,7 @@ class UserService {
     }
 
     // paranoid: false → we need to find him cause he must be archived before deleting
-    const targetUser = await this.userRepository.findOne({
+    const targetUser = await this._userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }), paranoid: false },
       projection: "role status email image coverImages",
     });
@@ -441,7 +482,7 @@ class UserService {
     }
 
     // the delete hook adds status: ARCHIVE to the filter
-    const deletedUser = await this.userRepository.findByIdAndDelete({
+    const deletedUser = await this._userRepository.findByIdAndDelete({
       id: targetUser._id,
     });
 
@@ -451,7 +492,7 @@ class UserService {
     }
 
     // remove every follow where he is the follower or the one being followed (+ pending requests)
-    await this.followRepository.deleteMany({
+    await this._followRepository.deleteMany({
       filter: {
         $or: [{ follower: targetUser._id }, { following: targetUser._id }],
       },
@@ -459,25 +500,28 @@ class UserService {
 
     // remove every redis key related to this user (profile, revoke tokens, otp, login trials)
     const [userIdKeys, userEmailKeys] = await Promise.all([
-      this.cacheService.keys({
+      this._cacheService.keys({
         prefix: `User::${targetUser._id.toString()}::`,
       }),
-      this.cacheService.keys({ prefix: `User::${targetUser.email}::` }),
+      this._cacheService.keys({ prefix: `User::${targetUser.email}::` }),
     ]);
 
     // always has the profile key → the array is never empty (redis DEL fails with no keys)
-    await this.cacheService.del({
+    await this._cacheService.del({
       key: [
         ...new Set([
           ...userIdKeys,
           ...userEmailKeys,
-          this.tokenService.userBaseProfile({ userId: targetUser._id }),
+          this._tokenService.userBaseProfile({ userId: targetUser._id }),
         ]),
       ],
     });
 
+    // his FCM key is "user:FCM:<id>", so the "User::<id>::" prefix above doesn't catch it
+    await this._notificationService.removeFCMUser({ userId: targetUser._id });
+
     // remove his uploaded images from assets
-    await this.cloudService.deleteFileDir({
+    await this._cloudService.deleteFileDir({
       prefix: `User/${userId.toString()}`,
     });
 
@@ -497,13 +541,13 @@ class UserService {
       throw new exceptions.ConflictException("error.visibilityAlreadySet");
     }
 
-    await this.userRepository.findByIdAndUpdate({
+    await this._userRepository.findByIdAndUpdate({
       id: user._id,
       update: { visibility },
     });
 
     if (visibility == enums.AccountVisibilityEnum.PUBLIC) {
-      await this.followRepository.updateMany({
+      await this._followRepository.updateMany({
         filter: {
           following: user._id,
           status: enums.FollowStatusEnum.PENDING,
@@ -514,8 +558,8 @@ class UserService {
       });
     }
 
-    await this.cacheService.del({
-      key: this.tokenService.userBaseProfile({ userId: user._id }),
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
 
     return visibility;
@@ -534,7 +578,7 @@ class UserService {
       throw new exceptions.BadRequestException("error.cannotFollowYourself");
     }
 
-    const targetUser = await this.userRepository.findOne({
+    const targetUser = await this._userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }) },
       projection: "visibility",
     });
@@ -543,7 +587,7 @@ class UserService {
       throw new exceptions.NotFoundException("error.invalidUser");
     }
 
-    const existingFollow = await this.followRepository.findOne({
+    const existingFollow = await this._followRepository.findOne({
       filter: { follower: user._id, following: targetUser._id },
       projection: "_id",
     });
@@ -552,7 +596,7 @@ class UserService {
       throw new exceptions.ConflictException("error.alreadyFollowing");
     }
 
-    const newFollow = await this.followRepository.create({
+    const newFollow = await this._followRepository.create({
       data: {
         follower: user._id,
         following: targetUser._id,
@@ -579,7 +623,7 @@ class UserService {
       throw new exceptions.BadRequestException("error.cannotUnfollowYourself");
     }
 
-    const deletedFollow = await this.followRepository.findOneAndDelete({
+    const deletedFollow = await this._followRepository.findOneAndDelete({
       filter: {
         follower: user._id,
         following: objectId.toObjectId({ id: userId }),
@@ -650,7 +694,7 @@ class UserService {
       throw new exceptions.BadRequestException("error.accountIsPublic");
     }
 
-    const data = await this.followRepository.paginate({
+    const data = await this._followRepository.paginate({
       filter: {
         following: user._id,
         status: enums.FollowStatusEnum.PENDING,
@@ -689,7 +733,7 @@ class UserService {
 
     switch (action) {
       case enums.FollowRequestActionEnum.ACCEPTED: {
-        const updateRequest = await this.followRepository.findOneAndUpdate({
+        const updateRequest = await this._followRepository.findOneAndUpdate({
           filter: {
             follower: userId,
             following: user._id,
@@ -707,7 +751,7 @@ class UserService {
         return "success.followRequestAccepted";
       }
       case enums.FollowRequestActionEnum.REJECTED: {
-        const deleteRequest = await this.followRepository.findOneAndDelete({
+        const deleteRequest = await this._followRepository.findOneAndDelete({
           filter: {
             follower: userId,
             following: user._id,
@@ -740,7 +784,7 @@ class UserService {
 
     const text = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    const data = await this.userRepository.paginate({
+    const data = await this._userRepository.paginate({
       filter: {
         _id: { $ne: user._id },
         role: { $ne: enums.RoleEnum.ADMIN },
@@ -771,7 +815,7 @@ class UserService {
   }) {
     const { limit } = query;
 
-    const users = await this.userRepository.find({
+    const users = await this._userRepository.find({
       filter: {
         _id: { $ne: user._id },
         confirmEmail: { $exists: true },
@@ -797,7 +841,7 @@ class UserService {
       throw new exceptions.BadRequestException("error.cannotRemoveYourself");
     }
 
-    const deletedFollow = await this.followRepository.findOneAndDelete({
+    const deletedFollow = await this._followRepository.findOneAndDelete({
       filter: {
         follower: objectId.toObjectId({ id: userId }),
         following: user._id,

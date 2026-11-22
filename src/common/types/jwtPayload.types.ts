@@ -1,8 +1,8 @@
-import { JwtPayload } from "jsonwebtoken";
-import mongoose from "mongoose";
+import type { JwtPayload } from "jsonwebtoken";
+import type { tps } from "..";
 
 export type TokenPayloadType = JwtPayload & {
-  sub: string | mongoose.Types.ObjectId;
+  sub: tps.userIdType;
   aud: string[];
   jti: string;
   iat: number;
