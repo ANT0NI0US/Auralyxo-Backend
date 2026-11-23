@@ -4,6 +4,9 @@ import type * as validators from "../user.validation";
 export type GetAllUsersDto = z.infer<ReturnType<typeof validators.getAllUsers>>;
 export type GetUserDto = z.infer<ReturnType<typeof validators.getUser>>;
 export type UpdateDto = z.infer<ReturnType<typeof validators.update>>;
+export type UpdatePreferredLanguageDto = z.infer<
+  ReturnType<typeof validators.updatePreferredLanguage>
+>;
 export type ShareProfileDto = z.infer<
   ReturnType<typeof validators.shareProfile>
 >;

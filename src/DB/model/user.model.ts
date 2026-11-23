@@ -87,6 +87,14 @@ const userSchema = new mongoose.Schema<itf.IUser>(
       },
       default: enums.AccountVisibilityEnum.PUBLIC,
     },
+    preferredLanguage: {
+      type: Number,
+      enum: {
+        values: numericValues(enums.LanguageEnum),
+        message: "validation.preferredLanguage.invalid",
+      },
+      default: enums.LanguageEnum.AR,
+    },
   },
   {
     timestamps: true,

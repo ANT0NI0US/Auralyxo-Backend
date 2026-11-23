@@ -15,6 +15,7 @@ import type * as entities from "./entities/user.entities";
 class UserService {
   private readonly _userRepository: queries.UserRepository;
   private readonly _followRepository: queries.FollowRepository;
+  private readonly _notificationRecipientRepository: queries.NotificationRecipientRepository;
   private readonly _cacheService: services.CacheService;
   private readonly _tokenService: services.TokenService;
   private readonly _cloudService: services.CloudService;
@@ -23,6 +24,8 @@ class UserService {
   constructor() {
     this._userRepository = new queries.UserRepository();
     this._followRepository = new queries.FollowRepository();
+    this._notificationRecipientRepository =
+      new queries.NotificationRecipientRepository();
     this._cacheService = services.cacheService;
     this._tokenService = services.tokenService;
     this._cloudService = services.cloudService;
@@ -172,6 +175,7 @@ class UserService {
       id: user._id,
       update: updatedData,
     });
+
     await this._cacheService.del({
       key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
@@ -179,7 +183,33 @@ class UserService {
     if (updatedUser?.phone) {
       updatedUser.phone = await security.decrypt(updatedUser.phone);
     }
+
     return updatedUser?.toJSON();
+  }
+
+  async updatePreferredLanguage({
+    user,
+    body,
+  }: {
+    user: models.HUser;
+    body: dto.UpdatePreferredLanguageDto["body"];
+  }) {
+    const { preferredLanguage } = body;
+
+    if (user.preferredLanguage == preferredLanguage) {
+      throw new exceptions.ConflictException("error.languageAlreadySet");
+    }
+
+    await this._userRepository.findByIdAndUpdate({
+      id: user._id,
+      update: { preferredLanguage },
+    });
+
+    await this._cacheService.del({
+      key: this._tokenService.userBaseProfile({ userId: user._id }),
+    });
+
+    return preferredLanguage;
   }
 
   async shareProfile({ params }: { params: dto.ShareProfileDto["params"] }) {
@@ -519,6 +549,13 @@ class UserService {
 
     // his FCM key is "user:FCM:<id>", so the "User::<id>::" prefix above doesn't catch it
     await this._notificationService.removeFCMUser({ userId: targetUser._id });
+
+    // remove notifications for this account
+    await this._notificationRecipientRepository.deleteMany({
+      filter: {
+        user: targetUser._id,
+      },
+    });
 
     // remove his uploaded images from assets
     await this._cloudService.deleteFileDir({

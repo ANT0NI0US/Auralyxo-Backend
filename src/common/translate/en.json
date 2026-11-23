@@ -74,6 +74,9 @@
     "visibility": {
       "invalid": "Invalid account visibility value"
     },
+    "preferredLanguage": {
+      "invalid": "Invalid language value"
+    },
     "followStatus": {
       "invalid": "Invalid follow status value"
     },
@@ -96,6 +99,31 @@
     "originalname": {
       "required": "File name is required",
       "max": "File name must be at most 100 characters"
+    },
+    "notificationTitle": {
+      "required": "Notification title is required in both Arabic and English",
+      "min": "Notification title must be at least 10 characters",
+      "max": "Notification title must be at most 50 characters"
+    },
+    "notificationBody": {
+      "required": "Notification body is required in both Arabic and English",
+      "min": "Notification body must be at least 30 characters",
+      "max": "Notification body must be at most 200 characters"
+    },
+    "createdBy": {
+      "required": "The notification creator is required"
+    },
+    "notification": {
+      "required": "The notification is required"
+    },
+    "notificationId": {
+      "invalid": "Invalid notification id"
+    },
+    "seen": {
+      "invalid": "Seen must be true or false"
+    },
+    "recipient": {
+      "required": "The notification recipient is required"
     }
   },
   "error": {
@@ -159,7 +187,9 @@
     "failToUpload": "Fail to upload this file",
     "concurrentUpdate": "This data was changed by another request, please try again",
     "missingAssetUrl": "The file path is missing",
-    "failToFetchAsset": "Failed to fetch this file"
+    "failToFetchAsset": "Failed to fetch this file",
+    "notificationNotFound": "Notification not found",
+    "languageAlreadySet": "Your account already uses this language"
   },
   "success": {
     "done": "Done",
@@ -178,6 +208,7 @@
     "userRetrieved": "User retrieved successfully",
     "usersRetrieved": "Users retrieved successfully",
     "userUpdated": "User updated successfully",
+    "languageUpdated": "Language updated successfully",
     "userStatusUpdated": "User status updated successfully",
     "userDeleted": "User deleted successfully",
     "profileImageUpdated": "Profile image updated successfully",
@@ -195,7 +226,13 @@
     "searchResults": "Search results retrieved successfully",
     "suggestionsRetrieved": "Suggestions retrieved successfully",
     "followerRemoved": "Follower removed successfully",
-    "otpSentIfRegistered": "If this email is registered, a verification code will be sent to it shortly"
+    "notificationSent": "Notification sent successfully",
+    "notificationsRetrieved": "Notifications retrieved successfully",
+    "notificationSeen": "Notification marked as seen",
+    "allNotificationsSeen": "All notifications marked as seen",
+    "notificationDeleted": "Notification deleted successfully",
+    "recipientsRetrieved": "Notification recipients retrieved successfully",
+    "otpSentIfRegistered":"If this email is registered, a verification code will be sent to it shortly"
   },
   "emailTemplate": {
     "confirmEmailTitle": "Email Confirmation",
@@ -211,5 +248,11 @@
     "email": "Email",
     "provider": "Sign-up method",
     "joinedAt": "Joined at"
+  },
+  "notification": {
+    "newLogin": {
+      "title": "New login",
+      "body": "A new login to your account was detected. If this wasn't you, change your password now."
+    }
   }
 }

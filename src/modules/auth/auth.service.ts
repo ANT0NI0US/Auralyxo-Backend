@@ -5,6 +5,7 @@ import {
   security,
   sendEmail,
   services,
+  translate,
   type tps,
 } from "../../common";
 import configService from "../../config.service";
@@ -25,6 +26,33 @@ class AuthenticationService {
     this._tokenService = services.tokenService;
     this._notificationService = services.notificationService;
     this._client = new OAuth2Client();
+  }
+
+  private async handleLoginFCM({
+    account,
+    FCM,
+  }: {
+    account: models.HUser;
+    FCM?: string | undefined;
+  }) {
+    if (!FCM) return;
+
+    const lang = account.preferredLanguage ?? enums.LanguageEnum.AR;
+
+    await this._notificationService.addFCM({
+      userId: account._id,
+      FCMToken: FCM,
+    });
+
+    const tokens = await this._notificationService.getFCMs({
+      userId: account._id,
+    });
+
+    await this._notificationService.sendNotifications({
+      tokens,
+      title: translate(lang, "notification.newLogin.title"),
+      body: translate(lang, "notification.newLogin.body"),
+    });
   }
 
   private async verifyGoogleAccount(idToken: string): Promise<TokenPayload> {
@@ -141,7 +169,7 @@ class AuthenticationService {
     body: dto.ConfirmEmailDto["body"];
     issuer: string;
   }): Promise<entities.ILoginResponse> {
-    const { email, otp } = body;
+    const { email, otp, FCM } = body;
     const account = await this._userRepository.findOne({
       filter: {
         email,
@@ -175,6 +203,8 @@ class AuthenticationService {
         }),
       }),
     });
+
+    await this.handleLoginFCM({ account, FCM });
 
     const { access_token, refresh_token } =
       await this._tokenService.createLoginCredentials({
@@ -293,22 +323,7 @@ class AuthenticationService {
       return;
     }
 
-    if (FCM) {
-      const FCMS = await this._notificationService.getFCMs({
-        userId: account._id,
-      });
-
-      await this._notificationService.sendNotifications({
-        tokens: FCMS,
-        title: "welcome",
-        body: "hi hi",
-      });
-
-      await this._notificationService.addFCM({
-        userId: account._id,
-        FCMToken: FCM,
-      });
-    }
+    await this.handleLoginFCM({ account, FCM });
 
     const { access_token, refresh_token } =
       await this._tokenService.createLoginCredentials({
@@ -326,7 +341,7 @@ class AuthenticationService {
     body: dto.LoginConfirmationDto["body"];
     issuer: string;
   }): Promise<entities.ILoginResponse> {
-    const { email, otp } = body;
+    const { email, otp, FCM } = body;
     const account = await this._userRepository.findOne({
       filter: {
         email,
@@ -360,6 +375,8 @@ class AuthenticationService {
         }),
       ],
     });
+
+    await this.handleLoginFCM({ account, FCM });
 
     const { access_token, refresh_token } =
       await this._tokenService.createLoginCredentials({

@@ -94,5 +94,8 @@ export const generalValidationFields = (lang: enums.LanguageEnum) => ({
     .number()
     .min(1, { error: translate(lang, "validation.limit.min") })
     .default(configService.PAGINATION_LIMIT),
+  preferredLanguage: z.enum(enums.LanguageEnum, {
+    error: translate(lang, "validation.preferredLanguage.invalid"),
+  }),
   checkEquality,
 });

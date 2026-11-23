@@ -177,7 +177,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: tps.userIdType;
+    id: tps.IdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean: false }) | null | undefined;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined>;
@@ -187,7 +187,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: tps.userIdType;
+    id: tps.IdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean: true }) | null | undefined;
   }): Promise<FlattenMaps<TRawDocType> | null | undefined>;
@@ -197,7 +197,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: tps.userIdType;
+    id: tps.IdType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: QueryOptions<TRawDocType> | null | undefined;
   }): Promise<
@@ -310,7 +310,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     update,
     options,
   }: {
-    id: tps.userIdType;
+    id: tps.IdType;
     update?: UpdateQuery<TRawDocType>;
     options?: QueryOptions<TRawDocType> | null;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined> {
@@ -360,7 +360,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     id,
     options,
   }: {
-    id: tps.userIdType;
+    id: tps.IdType;
     options?: QueryOptions<TRawDocType> | null;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined> {
     return await this.model.findByIdAndDelete(id, options);

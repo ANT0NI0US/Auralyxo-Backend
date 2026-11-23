@@ -1,3 +1,3 @@
 import type { Types } from "mongoose";
 
-export type userIdType = Types.ObjectId | string;
+export type IdType = Types.ObjectId | string;

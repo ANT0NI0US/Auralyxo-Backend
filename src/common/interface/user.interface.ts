@@ -19,6 +19,7 @@ export interface IUser {
   status: enums.AccountStatusEnum;
   changeStatusAt?: Date;
   visibility: enums.AccountVisibilityEnum;
+  preferredLanguage?: enums.LanguageEnum;
   createdAt?: Date;
   updatedAt?: Date;
 }

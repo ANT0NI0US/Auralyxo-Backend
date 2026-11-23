@@ -34,17 +34,11 @@ export class NotificationService {
     this._cacheService = cacheService;
   }
 
-  userKey({ userId }: { userId: tps.userIdType }) {
+  userKey({ userId }: { userId: tps.IdType }) {
     return `user:FCM:${userId.toString()}`;
   }
 
-  async addFCM({
-    userId,
-    FCMToken,
-  }: {
-    userId: tps.userIdType;
-    FCMToken: string;
-  }) {
+  async addFCM({ userId, FCMToken }: { userId: tps.IdType; FCMToken: string }) {
     return await this._cacheService.addToSet({
       key: this.userKey({ userId }),
       value: FCMToken,
@@ -55,7 +49,7 @@ export class NotificationService {
     userId,
     FCMToken,
   }: {
-    userId: tps.userIdType;
+    userId: tps.IdType;
     FCMToken: string;
   }) {
     return await this._cacheService.removeFromSet({
@@ -64,19 +58,19 @@ export class NotificationService {
     });
   }
 
-  async getFCMs({ userId }: { userId: tps.userIdType }) {
+  async getFCMs({ userId }: { userId: tps.IdType }) {
     return await this._cacheService.getMembers({
       key: this.userKey({ userId }),
     });
   }
 
-  async hasFCMs({ userId }: { userId: tps.userIdType }) {
+  async hasFCMs({ userId }: { userId: tps.IdType }) {
     return await this._cacheService.hasMembers({
       key: this.userKey({ userId }),
     });
   }
 
-  async removeFCMUser({ userId }: { userId: tps.userIdType }) {
+  async removeFCMUser({ userId }: { userId: tps.IdType }) {
     return await this._cacheService.del({
       key: this.userKey({ userId }),
     });

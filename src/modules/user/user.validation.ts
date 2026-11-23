@@ -43,6 +43,16 @@ export const update = (lang: enums.LanguageEnum) => {
       phone: generalValidationFields(lang).phone.optional(),
       DOB: generalValidationFields(lang).DOB.optional(),
       gender: generalValidationFields(lang).gender.optional(),
+      preferredLanguage:
+        generalValidationFields(lang).preferredLanguage.optional(),
+    }),
+  });
+};
+
+export const updatePreferredLanguage = (lang: enums.LanguageEnum) => {
+  return z.object({
+    body: z.strictObject({
+      preferredLanguage: generalValidationFields(lang).preferredLanguage,
     }),
   });
 };

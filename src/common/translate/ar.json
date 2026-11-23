@@ -74,6 +74,9 @@
     "visibility": {
       "invalid": "قيمة خصوصية الحساب غير صالحة"
     },
+    "preferredLanguage": {
+      "invalid": "قيمة اللغة غير صالحة"
+    },
     "followStatus": {
       "invalid": "قيمة حالة المتابعة غير صالحة"
     },
@@ -96,6 +99,31 @@
     "originalname": {
       "required": "اسم الملف مطلوب",
       "max": "اسم الملف يجب ألا يزيد عن 100 حرف"
+    },
+    "notificationTitle": {
+      "required": "عنوان الإشعار مطلوب باللغتين العربية والإنجليزية",
+      "min": "عنوان الإشعار يجب ألا يقل عن 10 أحرف",
+      "max": "عنوان الإشعار يجب ألا يزيد عن 50 حرفًا"
+    },
+    "notificationBody": {
+      "required": "نص الإشعار مطلوب باللغتين العربية والإنجليزية",
+      "min": "نص الإشعار يجب ألا يقل عن 30 حرفًا",
+      "max": "نص الإشعار يجب ألا يزيد عن 200 حرف"
+    },
+    "createdBy": {
+      "required": "منشئ الإشعار مطلوب"
+    },
+    "notification": {
+      "required": "الإشعار مطلوب"
+    },
+    "notificationId": {
+      "invalid": "معرف الإشعار غير صالح"
+    },
+    "seen": {
+      "invalid": "قيمة seen يجب أن تكون true أو false"
+    },
+    "recipient": {
+      "required": "مستلم الإشعار مطلوب"
     }
   },
   "error": {
@@ -159,7 +187,9 @@
     "failToUpload": "فشل تحميل هذا الملف",
     "concurrentUpdate": "تم تعديل هذه البيانات من طلب آخر، من فضلك حاول مرة أخرى",
     "missingAssetUrl": "مسار الملف غير موجود",
-    "failToFetchAsset": "فشل جلب هذا الملف"
+    "failToFetchAsset": "فشل جلب هذا الملف",
+    "notificationNotFound": "الإشعار غير موجود",
+    "languageAlreadySet": "حسابك يستخدم هذه اللغة بالفعل"
   },
   "success": {
     "done": "تم بنجاح",
@@ -178,6 +208,7 @@
     "userRetrieved": "تم جلب بيانات المستخدم بنجاح",
     "usersRetrieved": "تم جلب المستخدمين بنجاح",
     "userUpdated": "تم تحديث بيانات المستخدم بنجاح",
+    "languageUpdated": "تم تحديث اللغة بنجاح",
     "userStatusUpdated": "تم تحديث حالة المستخدم بنجاح",
     "userDeleted": "تم حذف المستخدم بنجاح",
     "profileImageUpdated": "تم تحديث صورة الملف الشخصي بنجاح",
@@ -195,7 +226,13 @@
     "searchResults": "تم جلب نتائج البحث بنجاح",
     "suggestionsRetrieved": "تم جلب الاقتراحات بنجاح",
     "followerRemoved": "تمت إزالة المتابع بنجاح",
-    "otpSentIfRegistered": "إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق خلال دقائق"
+    "notificationSent": "تم إرسال الإشعار بنجاح",
+    "notificationsRetrieved": "تم جلب الإشعارات بنجاح",
+    "notificationSeen": "تم تعليم الإشعار كمقروء",
+    "allNotificationsSeen": "تم تعليم كل الإشعارات كمقروءة",
+    "notificationDeleted": "تم حذف الإشعار بنجاح",
+    "recipientsRetrieved": "تم جلب مستلمي الإشعار بنجاح",
+    "otpSentIfRegistered":"إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق خلال دقائق"
   },
   "emailTemplate": {
     "confirmEmailTitle": "تأكيد البريد الإلكتروني",
@@ -211,5 +248,11 @@
     "email": "البريد الإلكتروني",
     "provider": "طريقة التسجيل",
     "joinedAt": "تاريخ الانضمام"
+  },
+  "notification": {
+    "newLogin": {
+      "title": "تسجيل دخول جديد",
+      "body": "تم تسجيل الدخول إلى حسابك من جهاز جديد. إذا لم تكن أنت، قم بتغيير كلمة المرور فورًا."
+    }
   }
 }

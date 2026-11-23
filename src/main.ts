@@ -13,7 +13,7 @@ import configService from "./config.service";
 import { BootstrapDB } from "./DB/connection.db";
 import * as middleware from "./middleware";
 import * as modules from "./modules";
-import { notificationService } from "./common/services";
+// import { notificationService } from "./common/services";
 
 const s3WriteResponse = promisify(pipeline);
 
@@ -107,24 +107,25 @@ app.get(
 
 app.all("/", middleware.welcome);
 
-app.post(
-  "/send-notification",
-  async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response> => {
-    await notificationService.sendNotification({
-      token: req.body.token,
-      notification: { title: "First", body: "Hello World" },
-    });
+// app.post(
+//   "/send-notification",
+//   async (
+//     req: Request,
+//     res: Response,
+//     next: NextFunction,
+//   ): Promise<Response> => {
+//     await notificationService.sendNotification({
+//       token: req.body.token,
+//       notification: { title: "First", body: "Hello World" },
+//     });
 
-    return res.status(200).json({ message: "Welcome", data: req.body });
-  },
-);
+//     return res.status(200).json({ message: "Welcome", data: req.body });
+//   },
+// );
 
 app.use("/auth", modules.authController);
 app.use("/user", modules.userController);
+app.use("/notification", modules.notificationController);
 
 app.all("{/*dummy}", middleware.notFound);
 

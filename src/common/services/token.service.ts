@@ -20,12 +20,12 @@ export class TokenService {
   }
 
   // USER PROFILE THAT IS STORED IN REDIS
-  userBaseProfile({ userId }: { userId: tps.userIdType }): string {
+  userBaseProfile({ userId }: { userId: tps.IdType }): string {
     return `User::${userId.toString()}::Profile`;
   }
 
   // BASE REVOKE TOKEN WE USE IT WHEN WE WANNA TO DELETE ALL LOGIN DEVICES + IN userRevokeToken
-  userBaseRevokeToken({ userId }: { userId: tps.userIdType }): string {
+  userBaseRevokeToken({ userId }: { userId: tps.IdType }): string {
     return `User::${userId.toString()}::Revoke_Token`;
   }
 
@@ -34,7 +34,7 @@ export class TokenService {
     userId,
     jti,
   }: {
-    userId: tps.userIdType;
+    userId: tps.IdType;
     jti: string;
   }): string {
     return `${this.userBaseRevokeToken({ userId })}::${jti}`;

@@ -66,13 +66,17 @@ export const confirmEmailSchema = (lang: enums.LanguageEnum) => {
 
 export const confirmEmail = (lang: enums.LanguageEnum) => {
   return z.object({
-    body: confirmEmailSchema(lang),
+    body: confirmEmailSchema(lang).safeExtend({
+      FCM: z.string().optional(),
+    }),
   });
 };
 
 export const loginConfirmation = (lang: enums.LanguageEnum) => {
   return z.object({
-    body: confirmEmailSchema(lang),
+    body: confirmEmailSchema(lang).safeExtend({
+      FCM: z.string().optional(),
+    }),
   });
 };
 

@@ -65,6 +65,26 @@ router.get(
     },
   ),
 );
+// -------------------------------------------------- UPDATE PREFERRED LANGUAGE --------------------------------------------------- //
+router.patch(
+  "/update-language",
+  middleware.authentication(),
+  middleware.validation(validators.updatePreferredLanguage),
+  middleware.responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<itf.IResponse> => {
+      const language = await us.updatePreferredLanguage({
+        user: req.user,
+        body: req.validate.body,
+      });
+
+      return { message: "success.languageUpdated", data: language };
+    },
+  ),
+);
 // -------------------------------------------------- UPDATE USER --------------------------------------------------- //
 router.patch(
   "/update",
