@@ -77,17 +77,22 @@
     "preferredLanguage": {
       "invalid": "قيمة اللغة غير صالحة"
     },
-    "followStatus": {
-      "invalid": "قيمة حالة المتابعة غير صالحة"
+    "friendRequestStatus": {
+      "invalid": "قيمة حالة طلب الصداقة غير صالحة"
     },
-    "follower": {
-      "required": "المتابِع مطلوب"
+    "senderId": {
+      "required": "مُرسل طلب الصداقة مطلوب"
     },
-    "following": {
-      "required": "المستخدم المتابَع مطلوب"
+    "receiverId": {
+      "required": "مستقبل طلب الصداقة مطلوب"
     },
-    "followRequestAction": {
-      "invalid": "إجراء غير صالح على طلب المتابعة"
+    "friendRequestAction": {
+      "invalid": "إجراء غير صالح على طلب الصداقة"
+    },
+    "note": {
+      "invalid": "الملاحظة يجب أن تكون نصًا",
+      "min": "الملاحظة يجب ألا تقل عن 30 حرفًا",
+      "max": "الملاحظة يجب ألا تزيد عن 5000 حرف"
     },
     "search": {
       "required": "نص البحث مطلوب",
@@ -136,7 +141,7 @@
       "email": "هذا البريد الإلكتروني مسجل من قبل",
       "phone": "رقم الهاتف هذا مسجل من قبل",
       "default": "هذه القيمة موجودة من قبل",
-      "follower": "أنت تتابع هذا المستخدم بالفعل أو طلب المتابعة قيد الانتظار"
+      "senderId": "لقد أرسلت طلب صداقة لهذا المستخدم بالفعل"
     },
     "unauthorized": "حساب غير مصرح له",
     "forbidden": "ليس لديك صلاحية للوصول إلى هذا المورد",
@@ -174,16 +179,17 @@
     "invalidUpload": "رفع الملف غير صالح",
     "twoStepVerificationAlreadyEnabled": "تم تفعيل التحقق بخطوتين لهذا الحساب بالفعل",
     "twoStepVerificationNotEnabled": "التحقق بخطوتين غير مفعل لهذا الحساب",
-    "cannotFollowYourself": "لا يمكنك متابعة نفسك",
-    "cannotUnfollowYourself": "لا يمكنك إلغاء متابعة نفسك",
-    "alreadyFollowing": "أنت تتابع هذا المستخدم بالفعل أو طلب المتابعة قيد الانتظار",
-    "notFollowing": "أنت لا تتابع هذا المستخدم",
+    "cannotSendFriendRequestToYourself": "لا يمكنك إرسال طلب صداقة لنفسك",
+    "cannotCancelFriendRequestToYourself": "لا يمكنك إلغاء طلب صداقة لنفسك",
+    "friendRequestAlreadyExists": "لقد أرسلت طلب صداقة لهذا المستخدم بالفعل",
+    "sentFriendRequestNotFound": "لا يوجد طلب صداقة معلّق أرسلته لهذا المستخدم",
+    "friendRequestReceivedFromUser": "هذا المستخدم أرسل لك طلب صداقة بالفعل، يمكنك قبوله",
+    "alreadyFriends": "أنت وهذا المستخدم أصدقاء بالفعل",
     "visibilityAlreadySet": "الحساب بالفعل على هذه الخصوصية",
-    "followRequestNotFound": "لا يوجد طلب متابعة معلّق من هذا المستخدم",
+    "pendingFriendRequestNotFound": "لا يوجد طلب صداقة معلّق من هذا المستخدم",
     "privateAccount": "هذا الحساب خاص",
-    "accountIsPublic": "حسابك عام، يتم قبول طلبات المتابعة تلقائيًا",
-    "cannotRemoveYourself": "لا يمكنك إزالة نفسك من متابعيك",
-    "notYourFollower": "هذا المستخدم لا يتابعك",
+    "cannotRemoveYourself": "لا يمكنك إزالة نفسك من أصدقائك",
+    "notFriends": "هذا المستخدم ليس في قائمة أصدقائك",
     "failToUpload": "فشل تحميل هذا الملف",
     "concurrentUpdate": "تم تعديل هذه البيانات من طلب آخر، من فضلك حاول مرة أخرى",
     "missingAssetUrl": "مسار الملف غير موجود",
@@ -215,24 +221,22 @@
     "coverImagesUpdated": "تم تحديث صور الغلاف بنجاح",
     "profileImageDeleted": "تم حذف صورة الملف الشخصي بنجاح",
     "visibilityUpdated": "تم تحديث خصوصية الحساب بنجاح",
-    "followed": "أنت الآن تتابع هذا المستخدم",
-    "followRequestSent": "تم إرسال طلب المتابعة بنجاح",
-    "unfollowed": "تم إلغاء المتابعة بنجاح",
-    "followersRetrieved": "تم جلب المتابعين بنجاح",
-    "followingRetrieved": "تم جلب قائمة المتابَعين بنجاح",
-    "followRequestsRetrieved": "تم جلب طلبات المتابعة بنجاح",
-    "followRequestAccepted": "تم قبول طلب المتابعة",
-    "followRequestRejected": "تم رفض طلب المتابعة",
+    "friendRequestSent": "تم إرسال طلب الصداقة بنجاح",
+    "friendRequestCanceled": "تم إلغاء طلب الصداقة بنجاح",
+    "friendsRetrieved": "تم جلب الأصدقاء بنجاح",
+    "pendingFriendRequestsRetrieved": "تم جلب طلبات الصداقة المعلّقة بنجاح",
+    "friendRequestAccepted": "تم قبول طلب الصداقة",
+    "friendRequestRejected": "تم رفض طلب الصداقة",
     "searchResults": "تم جلب نتائج البحث بنجاح",
     "suggestionsRetrieved": "تم جلب الاقتراحات بنجاح",
-    "followerRemoved": "تمت إزالة المتابع بنجاح",
+    "friendRemoved": "تمت إزالة الصداقة بنجاح",
     "notificationSent": "تم إرسال الإشعار بنجاح",
     "notificationsRetrieved": "تم جلب الإشعارات بنجاح",
     "notificationSeen": "تم تعليم الإشعار كمقروء",
     "allNotificationsSeen": "تم تعليم كل الإشعارات كمقروءة",
     "notificationDeleted": "تم حذف الإشعار بنجاح",
     "recipientsRetrieved": "تم جلب مستلمي الإشعار بنجاح",
-    "otpSentIfRegistered":"إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق خلال دقائق"
+    "otpSentIfRegistered": "إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق خلال دقائق"
   },
   "emailTemplate": {
     "confirmEmailTitle": "تأكيد البريد الإلكتروني",

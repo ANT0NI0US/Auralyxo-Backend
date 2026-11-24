@@ -14,7 +14,7 @@ import type * as entities from "./entities/user.entities";
 
 class UserService {
   private readonly _userRepository: queries.UserRepository;
-  private readonly _followRepository: queries.FollowRepository;
+  private readonly _friendRequestRepository: queries.FriendRequestRepository;
   private readonly _notificationRecipientRepository: queries.NotificationRecipientRepository;
   private readonly _cacheService: services.CacheService;
   private readonly _tokenService: services.TokenService;
@@ -23,7 +23,7 @@ class UserService {
 
   constructor() {
     this._userRepository = new queries.UserRepository();
-    this._followRepository = new queries.FollowRepository();
+    this._friendRequestRepository = new queries.FriendRequestRepository();
     this._notificationRecipientRepository =
       new queries.NotificationRecipientRepository();
     this._cacheService = services.cacheService;
@@ -32,67 +32,51 @@ class UserService {
     this._notificationService = services.notificationService;
   }
 
-  private async followList({
-    viewer,
-    userId,
-    page,
-    limit,
-    matchField,
-    showField,
-  }: {
-    viewer: models.HUser;
-    userId: string;
-    page: number;
-    limit: number;
-    matchField: "follower" | "following";
-    showField: "follower" | "following";
-  }) {
-    const targetUser = await this._userRepository.findOne({
-      filter: { _id: objectId.toObjectId({ id: userId }) },
-      projection: "visibility",
-    });
-
-    if (!targetUser) {
-      throw new exceptions.NotFoundException("error.invalidUser");
-    }
-
-    if (
-      targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE &&
-      !viewer._id.equals(targetUser._id)
-    ) {
-      const isFollower = await this._followRepository.findOne({
-        filter: {
-          follower: viewer._id,
-          following: targetUser._id,
-          status: enums.FollowStatusEnum.ACCEPTED,
-        },
-        projection: "_id",
-      });
-
-      if (!isFollower) {
-        throw new exceptions.ForbiddenException("error.privateAccount");
-      }
-    }
-
-    const data = await this._followRepository.paginate({
-      filter: {
-        [matchField]: targetUser._id,
-        status: enums.FollowStatusEnum.ACCEPTED,
-      },
-      options: {
-        sort: { createdAt: -1 },
-        populate: { path: showField, select: "firstName lastName image" },
-      },
-      page,
-      limit,
-    });
-
+  // a friendship is one request between the two users, whoever sent it → always search in both directions
+  private betweenUsers(firstId: tps.IdType, secondId: tps.IdType) {
     return {
-      ...data,
-      docs: (data.docs as models.HFollow[])
-        .map((doc) => doc.toJSON())
-        .filter((doc) => doc[showField]),
+      $or: [
+        { senderId: firstId, receiverId: secondId },
+        { senderId: secondId, receiverId: firstId },
+      ],
     };
+  }
+
+  // keep the stored friends array of both sides in sync with the friend requests, then drop their cached profiles
+  // paranoid: false → archived users are updated too, so no one keeps a stale id
+  private async syncFriends({
+    action,
+    userId,
+    friendIds,
+  }: {
+    action: "add" | "remove";
+    userId: tps.IdType;
+    friendIds: tps.IdType[];
+  }) {
+    if (!friendIds.length) return;
+
+    await Promise.all([
+      this._userRepository.updateOne({
+        filter: { _id: userId, paranoid: false },
+        update:
+          action == "add"
+            ? { $addToSet: { friends: { $each: friendIds } } }
+            : { $pull: { friends: { $in: friendIds } } },
+      }),
+      this._userRepository.updateMany({
+        filter: { _id: { $in: friendIds }, paranoid: false },
+        update:
+          action == "add"
+            ? { $addToSet: { friends: userId } }
+            : { $pull: { friends: userId } },
+      }),
+    ]);
+
+    await this._cacheService.del({
+      key: [userId, ...friendIds].map((id) =>
+        this._tokenService.userBaseProfile({ userId: id }),
+      ),
+    });
   }
 
   async profile({ user }: { user: models.HUser }) {
@@ -212,22 +196,45 @@ class UserService {
     return preferredLanguage;
   }
 
-  async shareProfile({ params }: { params: dto.ShareProfileDto["params"] }) {
+  async shareProfile({
+    user,
+    params,
+  }: {
+    user: models.HUser;
+    params: dto.ShareProfileDto["params"];
+  }) {
     const { userId } = params;
-    const user = await this._userRepository.findById({
-      id: new Types.ObjectId(userId),
+
+    const existingUser = await this._userRepository.findById({
+      id: objectId.toObjectId({ id: userId }),
       projection: "firstName lastName image coverImages gender visibility",
     });
 
-    if (!user) {
+    if (!existingUser) {
       throw new exceptions.NotFoundException("error.invalidUser");
     }
 
-    if (user.visibility == enums.AccountVisibilityEnum.PRIVATE) {
-      const { firstName, lastName, image, visibility } = user.toJSON();
-      return { _id: user._id, firstName, lastName, image, visibility };
+    const isOwner = user._id.equals(userId);
+    const isFriend = (user.friends as Types.ObjectId[]).some((friendId) =>
+      friendId.equals(userId),
+    );
+
+    if (
+      existingUser.visibility == enums.AccountVisibilityEnum.PRIVATE &&
+      !isOwner &&
+      !isFriend
+    ) {
+      const { firstName, lastName, image, visibility } = existingUser.toJSON();
+      return {
+        _id: existingUser._id,
+        firstName,
+        lastName,
+        image,
+        visibility,
+      };
     }
-    return user.toJSON();
+
+    return existingUser.toJSON();
   }
 
   // * using s3 bucket
@@ -521,10 +528,29 @@ class UserService {
       throw new exceptions.ConflictException("error.archiveBeforeDelete");
     }
 
-    // remove every follow where he is the follower or the one being followed (+ pending requests)
-    await this._followRepository.deleteMany({
+    // remove his id from the friends array of every friend he had
+    const friendships = await this._friendRequestRepository.find({
       filter: {
-        $or: [{ follower: targetUser._id }, { following: targetUser._id }],
+        $or: [{ senderId: targetUser._id }, { receiverId: targetUser._id }],
+        status: enums.FriendRequestStatusEnum.ACCEPTED,
+      },
+      projection: "senderId receiverId",
+    });
+
+    await this.syncFriends({
+      action: "remove",
+      userId: targetUser._id,
+      friendIds: friendships.map((request) =>
+        targetUser._id.equals(request.senderId)
+          ? request.receiverId
+          : request.senderId,
+      ),
+    });
+
+    // remove every friend request he sent or received (accepted + pending)
+    await this._friendRequestRepository.deleteMany({
+      filter: {
+        $or: [{ senderId: targetUser._id }, { receiverId: targetUser._id }],
       },
     });
 
@@ -583,18 +609,6 @@ class UserService {
       update: { visibility },
     });
 
-    if (visibility == enums.AccountVisibilityEnum.PUBLIC) {
-      await this._followRepository.updateMany({
-        filter: {
-          following: user._id,
-          status: enums.FollowStatusEnum.PENDING,
-        },
-        update: {
-          status: enums.FollowStatusEnum.ACCEPTED,
-        },
-      });
-    }
-
     await this._cacheService.del({
       key: this._tokenService.userBaseProfile({ userId: user._id }),
     });
@@ -602,18 +616,179 @@ class UserService {
     return visibility;
   }
 
-  async followAccount({
+  async sendFriendRequest({
+    body,
+    user,
+  }: {
+    body: dto.SendFriendRequestDto["body"];
+    user: models.HUser;
+  }) {
+    const { userId, note } = body;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.BadRequestException(
+        "error.cannotSendFriendRequestToYourself",
+      );
+    }
+
+    const targetUser = await this._userRepository.findOne({
+      filter: { _id: objectId.toObjectId({ id: userId }) },
+      projection: "_id",
+    });
+
+    if (!targetUser) {
+      throw new exceptions.NotFoundException("error.invalidUser");
+    }
+
+    // any request between the two users, in both directions
+    const existingRequest = await this._friendRequestRepository.findOne({
+      filter: this.betweenUsers(user._id, targetUser._id),
+      projection: "senderId status",
+    });
+
+    if (existingRequest) {
+      if (existingRequest.status == enums.FriendRequestStatusEnum.ACCEPTED) {
+        throw new exceptions.ConflictException("error.alreadyFriends");
+      }
+
+      // he already sent me a pending request → I should accept it, not send a new one
+      throw new exceptions.ConflictException(
+        user._id.equals(existingRequest.senderId)
+          ? "error.friendRequestAlreadyExists"
+          : "error.friendRequestReceivedFromUser",
+      );
+    }
+
+    // always pending → the receiver must accept it, visibility does not matter here
+    const newRequest = await this._friendRequestRepository.create({
+      data: {
+        senderId: user._id,
+        receiverId: targetUser._id,
+        ...(note ? { note } : {}),
+        status: enums.FriendRequestStatusEnum.PENDING,
+      },
+    });
+
+    return newRequest.toJSON();
+  }
+
+  async actionToFriendRequest({
+    params,
+    body,
+    user,
+  }: {
+    params: dto.TakeAnActionToFriendRequestDto["params"];
+    body: dto.TakeAnActionToFriendRequestDto["body"];
+    user: models.HUser;
+  }) {
+    const { userId } = params;
+    const { action } = body;
+
+    if (user._id.equals(userId)) {
+      throw new exceptions.NotFoundException(
+        "error.pendingFriendRequestNotFound",
+      );
+    }
+
+    switch (action) {
+      case enums.FriendRequestActionEnum.ACCEPTED: {
+        const updateRequest =
+          await this._friendRequestRepository.findOneAndUpdate({
+            filter: {
+              senderId: userId,
+              receiverId: user._id,
+              status: enums.FriendRequestStatusEnum.PENDING,
+            },
+            update: {
+              status: enums.FriendRequestStatusEnum.ACCEPTED,
+            },
+          });
+
+        if (!updateRequest) {
+          throw new exceptions.NotFoundException(
+            "error.pendingFriendRequestNotFound",
+          );
+        }
+
+        await this.syncFriends({
+          action: "add",
+          userId: updateRequest.receiverId,
+          friendIds: [updateRequest.senderId],
+        });
+
+        return "success.friendRequestAccepted";
+      }
+      case enums.FriendRequestActionEnum.REJECTED: {
+        const deleteRequest =
+          await this._friendRequestRepository.findOneAndDelete({
+            filter: {
+              senderId: userId,
+              receiverId: user._id,
+              status: enums.FriendRequestStatusEnum.PENDING,
+            },
+          });
+
+        if (!deleteRequest) {
+          throw new exceptions.NotFoundException(
+            "error.pendingFriendRequestNotFound",
+          );
+        }
+
+        return "success.friendRequestRejected";
+      }
+
+      default:
+        throw new exceptions.BadRequestException(
+          "validation.friendRequestAction.invalid",
+        );
+    }
+  }
+
+  async cancelFriendRequest({
     params,
     user,
   }: {
-    params: dto.FollowAccountDto["params"];
+    params: dto.CancelFriendRequestDto["params"];
     user: models.HUser;
   }) {
     const { userId } = params;
 
     if (user._id.equals(userId)) {
-      throw new exceptions.BadRequestException("error.cannotFollowYourself");
+      throw new exceptions.BadRequestException(
+        "error.cannotCancelFriendRequestToYourself",
+      );
     }
+
+    const deletedRequest = await this._friendRequestRepository.findOneAndDelete(
+      {
+        filter: {
+          senderId: user._id,
+          receiverId: objectId.toObjectId({ id: userId }),
+          // cancel is only for a request that is not accepted yet, an accepted one is removed by removeExistingFriend
+          status: enums.FriendRequestStatusEnum.PENDING,
+        },
+      },
+    );
+
+    if (!deletedRequest) {
+      throw new exceptions.NotFoundException("error.sentFriendRequestNotFound");
+    }
+
+    return;
+  }
+
+  // every accepted request where this user is the sender or the receiver → shows the other user
+  async friends({
+    query,
+    params,
+    user,
+  }: {
+    query: dto.GetFriendsDto["query"];
+    params: dto.GetFriendsDto["params"];
+    user: models.HUser;
+  }) {
+    const { page, limit } = query;
+    const { userId } = params;
 
     const targetUser = await this._userRepository.findOne({
       filter: { _id: objectId.toObjectId({ id: userId }) },
@@ -624,121 +799,79 @@ class UserService {
       throw new exceptions.NotFoundException("error.invalidUser");
     }
 
-    const existingFollow = await this._followRepository.findOne({
-      filter: { follower: user._id, following: targetUser._id },
-      projection: "_id",
-    });
+    // private account → only his friends can see his friends list
+    if (
+      targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE &&
+      !user._id.equals(targetUser._id)
+    ) {
+      const isFriend = await this._friendRequestRepository.findOne({
+        filter: {
+          ...this.betweenUsers(user._id, targetUser._id),
+          status: enums.FriendRequestStatusEnum.ACCEPTED,
+        },
+        projection: "_id",
+      });
 
-    if (existingFollow) {
-      throw new exceptions.ConflictException("error.alreadyFollowing");
+      if (!isFriend) {
+        throw new exceptions.ForbiddenException("error.privateAccount");
+      }
     }
 
-    const newFollow = await this._followRepository.create({
-      data: {
-        follower: user._id,
-        following: targetUser._id,
-        status:
-          targetUser.visibility == enums.AccountVisibilityEnum.PRIVATE
-            ? enums.FollowStatusEnum.PENDING
-            : enums.FollowStatusEnum.ACCEPTED,
-      },
-    });
-
-    return newFollow.toJSON();
-  }
-
-  async unFollowAccount({
-    params,
-    user,
-  }: {
-    params: dto.UnFollowAccountDto["params"];
-    user: models.HUser;
-  }) {
-    const { userId } = params;
-
-    if (user._id.equals(userId)) {
-      throw new exceptions.BadRequestException("error.cannotUnfollowYourself");
-    }
-
-    const deletedFollow = await this._followRepository.findOneAndDelete({
+    const data = await this._friendRequestRepository.paginate({
       filter: {
-        follower: user._id,
-        following: objectId.toObjectId({ id: userId }),
-      },
-    });
-
-    if (!deletedFollow) {
-      throw new exceptions.NotFoundException("error.notFollowing");
-    }
-
-    return;
-  }
-
-  async followers({
-    query,
-    params,
-    user,
-  }: {
-    query: dto.GetFollowersDto["query"];
-    params: dto.GetFollowersDto["params"];
-    user: models.HUser;
-  }) {
-    const { page, limit } = query;
-    const { userId } = params;
-
-    return this.followList({
-      viewer: user,
-      userId,
-      page,
-      limit,
-      matchField: "following",
-      showField: "follower",
-    });
-  }
-
-  async following({
-    query,
-    params,
-    user,
-  }: {
-    query: dto.GetFollowingsDto["query"];
-    params: dto.GetFollowingsDto["params"];
-    user: models.HUser;
-  }) {
-    const { page, limit } = query;
-    const { userId } = params;
-
-    return this.followList({
-      viewer: user,
-      userId,
-      page,
-      limit,
-      matchField: "follower",
-      showField: "following",
-    });
-  }
-
-  async followRequests({
-    query,
-    user,
-  }: {
-    query: dto.GetFollowRequestsDto["query"];
-    user: models.HUser;
-  }) {
-    const { page, limit } = query;
-
-    if (user.visibility == enums.AccountVisibilityEnum.PUBLIC) {
-      throw new exceptions.BadRequestException("error.accountIsPublic");
-    }
-
-    const data = await this._followRepository.paginate({
-      filter: {
-        following: user._id,
-        status: enums.FollowStatusEnum.PENDING,
+        $or: [{ senderId: targetUser._id }, { receiverId: targetUser._id }],
+        status: enums.FriendRequestStatusEnum.ACCEPTED,
       },
       options: {
         sort: { createdAt: -1 },
-        populate: { path: "follower", select: "firstName lastName image" },
+        populate: [
+          { path: "senderId", select: "firstName lastName image" },
+          { path: "receiverId", select: "firstName lastName image" },
+        ],
+      },
+      page,
+      limit,
+    });
+
+    type FriendType = { _id: Types.ObjectId } | null;
+
+    return {
+      ...data,
+      docs: (data.docs as models.HFriendRequest[])
+        .map((doc) => {
+          const { _id, senderId, receiverId, createdAt } = doc.toJSON() as {
+            _id: Types.ObjectId;
+            senderId: FriendType;
+            receiverId: FriendType;
+            createdAt: Date;
+          };
+          // the friend is the other side of the request (null → archived user)
+          const friend = senderId?._id.equals(targetUser._id)
+            ? receiverId
+            : senderId;
+          return friend ? { _id, friend, createdAt } : null;
+        })
+        .filter((doc) => doc),
+    };
+  }
+
+  async pendingFriendRequests({
+    query,
+    user,
+  }: {
+    query: dto.GetPendingFriendRequestsDto["query"];
+    user: models.HUser;
+  }) {
+    const { page, limit } = query;
+
+    const data = await this._friendRequestRepository.paginate({
+      filter: {
+        receiverId: user._id,
+        status: enums.FriendRequestStatusEnum.PENDING,
+      },
+      options: {
+        sort: { createdAt: -1 },
+        populate: { path: "senderId", select: "firstName lastName image" },
       },
       page,
       limit,
@@ -746,68 +879,10 @@ class UserService {
 
     return {
       ...data,
-      docs: (data.docs as models.HFollow[])
+      docs: (data.docs as models.HFriendRequest[])
         .map((doc) => doc.toJSON())
-        .filter((doc) => doc["follower"]),
+        .filter((doc) => doc["senderId"]),
     };
-  }
-
-  async actionToRequest({
-    params,
-    body,
-    user,
-  }: {
-    params: dto.TakeAnActionToRequestDto["params"];
-    body: dto.TakeAnActionToRequestDto["body"];
-    user: models.HUser;
-  }) {
-    const { userId } = params;
-    const { action } = body;
-
-    if (user._id.equals(userId)) {
-      throw new exceptions.NotFoundException("error.followRequestNotFound");
-    }
-
-    switch (action) {
-      case enums.FollowRequestActionEnum.ACCEPTED: {
-        const updateRequest = await this._followRepository.findOneAndUpdate({
-          filter: {
-            follower: userId,
-            following: user._id,
-            status: enums.FollowStatusEnum.PENDING,
-          },
-          update: {
-            status: enums.FollowStatusEnum.ACCEPTED,
-          },
-        });
-
-        if (!updateRequest) {
-          throw new exceptions.NotFoundException("error.followRequestNotFound");
-        }
-
-        return "success.followRequestAccepted";
-      }
-      case enums.FollowRequestActionEnum.REJECTED: {
-        const deleteRequest = await this._followRepository.findOneAndDelete({
-          filter: {
-            follower: userId,
-            following: user._id,
-            status: enums.FollowStatusEnum.PENDING,
-          },
-        });
-
-        if (!deleteRequest) {
-          throw new exceptions.NotFoundException("error.followRequestNotFound");
-        }
-
-        return "success.followRequestRejected";
-      }
-
-      default:
-        throw new exceptions.BadRequestException(
-          "validation.followRequestAction.invalid",
-        );
-    }
   }
 
   async searchUsers({
@@ -865,11 +940,11 @@ class UserService {
     return users.map((doc) => doc.toJSON());
   }
 
-  async removeExistingFollower({
+  async removeExistingFriend({
     params,
     user,
   }: {
-    params: dto.RemoveExistingFollowerDto["params"];
+    params: dto.RemoveExistingFriendDto["params"];
     user: models.HUser;
   }) {
     const { userId } = params;
@@ -878,17 +953,25 @@ class UserService {
       throw new exceptions.BadRequestException("error.cannotRemoveYourself");
     }
 
-    const deletedFollow = await this._followRepository.findOneAndDelete({
-      filter: {
-        follower: objectId.toObjectId({ id: userId }),
-        following: user._id,
-        status: enums.FollowStatusEnum.ACCEPTED,
+    const deletedRequest = await this._friendRequestRepository.findOneAndDelete(
+      {
+        filter: {
+          // any of the two can remove the friendship, whoever sent the request
+          ...this.betweenUsers(user._id, objectId.toObjectId({ id: userId })),
+          status: enums.FriendRequestStatusEnum.ACCEPTED,
+        },
       },
-    });
+    );
 
-    if (!deletedFollow) {
-      throw new exceptions.NotFoundException("error.notYourFollower");
+    if (!deletedRequest) {
+      throw new exceptions.NotFoundException("error.notFriends");
     }
+
+    await this.syncFriends({
+      action: "remove",
+      userId: deletedRequest.senderId,
+      friendIds: [deletedRequest.receiverId],
+    });
 
     return;
   }

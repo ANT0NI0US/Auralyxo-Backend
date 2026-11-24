@@ -124,8 +124,22 @@ export const toggleVisibility = (lang: enums.LanguageEnum) => {
   });
 };
 
-// Follow / Unfollow
-export const followAccount = (lang: enums.LanguageEnum) => {
+// Friend requests
+export const sendFriendRequest = (lang: enums.LanguageEnum) => {
+  return z.object({
+    body: z.strictObject({
+      userId: generalValidationFields(lang).id,
+      note: z
+        .string({ error: translate(lang, "validation.note.invalid") })
+        .trim()
+        .min(30, { error: translate(lang, "validation.note.min") })
+        .max(5000, { error: translate(lang, "validation.note.max") })
+        .optional(),
+    }),
+  });
+};
+
+export const cancelFriendRequest = (lang: enums.LanguageEnum) => {
   return z.object({
     params: z.strictObject({
       userId: generalValidationFields(lang).id,
@@ -133,15 +147,7 @@ export const followAccount = (lang: enums.LanguageEnum) => {
   });
 };
 
-export const unFollowAccount = (lang: enums.LanguageEnum) => {
-  return z.object({
-    params: z.strictObject({
-      userId: generalValidationFields(lang).id,
-    }),
-  });
-};
-
-export const getFollowers = (lang: enums.LanguageEnum) => {
+export const getFriends = (lang: enums.LanguageEnum) => {
   return z.object({
     query: z.strictObject({
       page: generalValidationFields(lang).page,
@@ -153,19 +159,7 @@ export const getFollowers = (lang: enums.LanguageEnum) => {
   });
 };
 
-export const getFollowings = (lang: enums.LanguageEnum) => {
-  return z.object({
-    query: z.strictObject({
-      page: generalValidationFields(lang).page,
-      limit: generalValidationFields(lang).limit,
-    }),
-    params: z.strictObject({
-      userId: generalValidationFields(lang).id,
-    }),
-  });
-};
-
-export const getFollowRequests = (lang: enums.LanguageEnum) => {
+export const getPendingFriendRequests = (lang: enums.LanguageEnum) => {
   return z.object({
     query: z.strictObject({
       page: generalValidationFields(lang).page,
@@ -174,14 +168,14 @@ export const getFollowRequests = (lang: enums.LanguageEnum) => {
   });
 };
 
-export const takeAnActionToRequest = (lang: enums.LanguageEnum) => {
+export const takeAnActionToFriendRequest = (lang: enums.LanguageEnum) => {
   return z.object({
     params: z.strictObject({
       userId: generalValidationFields(lang).id,
     }),
     body: z.strictObject({
-      action: z.enum(enums.FollowRequestActionEnum, {
-        error: translate(lang, "validation.followRequestAction.invalid"),
+      action: z.enum(enums.FriendRequestActionEnum, {
+        error: translate(lang, "validation.friendRequestAction.invalid"),
       }),
     }),
   });
@@ -209,7 +203,7 @@ export const getSuggestions = (lang: enums.LanguageEnum) => {
   });
 };
 
-export const removeExistingFollower = (lang: enums.LanguageEnum) => {
+export const removeExistingFriend = (lang: enums.LanguageEnum) => {
   return z.object({
     params: z.strictObject({
       userId: generalValidationFields(lang).id,

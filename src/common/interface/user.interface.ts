@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import type { enums } from "../../common";
 
 export interface IUser {
@@ -20,6 +21,7 @@ export interface IUser {
   changeStatusAt?: Date;
   visibility: enums.AccountVisibilityEnum;
   preferredLanguage?: enums.LanguageEnum;
+  friends: mongoose.Types.ObjectId[] | IUser[];
   createdAt?: Date;
   updatedAt?: Date;
 }

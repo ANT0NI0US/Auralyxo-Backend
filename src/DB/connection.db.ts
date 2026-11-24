@@ -14,7 +14,7 @@ export const BootstrapDB = async (app: Application) => {
 
     if (configService.NODE_ENV === "development") {
       await models.UserModel.syncIndexes();
-      await models.FollowModel.syncIndexes();
+      await models.FriendRequestModel.syncIndexes();
       await models.NotificationModel.syncIndexes();
       await models.NotificationRecipientModel.syncIndexes();
     }

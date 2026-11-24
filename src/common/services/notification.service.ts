@@ -98,11 +98,24 @@ export class NotificationService {
     title: string;
     body: string;
   }) {
+    // first approach
     await Promise.allSettled(
       tokens.map((token) => {
         return this.sendNotification({ token, notification: { title, body } });
       }),
     );
+
+    // second approach
+    // let messages = tokens.map((token) => {
+    //   return {
+    //     token,
+    //     notification: {
+    //       title,
+    //       body,
+    //     },
+    //   };
+    // });
+    // return getMessaging(this._app).sendEach(messages);
   }
 }
 

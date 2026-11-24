@@ -105,38 +105,41 @@ router.patch(
     },
   ),
 );
-// -------------------------------------------------- FOLLOW REQUESTS --------------------------------------------------- //
+// -------------------------------------------------- PENDING FRIEND REQUESTS --------------------------------------------------- //
 router.get(
-  "/follow-requests",
+  "/friend-requests",
   middleware.authentication(),
-  middleware.validation(validators.getFollowRequests),
+  middleware.validation(validators.getPendingFriendRequests),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      const requests = await us.followRequests({
+      const requests = await us.pendingFriendRequests({
         query: req.validate.query,
         user: req.user,
       });
 
-      return { message: "success.followRequestsRetrieved", data: requests };
+      return {
+        message: "success.pendingFriendRequestsRetrieved",
+        data: requests,
+      };
     },
   ),
 );
-// -------------------------------------------------- ACTION TO REQUEST --------------------------------------------------- //
+// -------------------------------------------------- ACTION TO FRIEND REQUEST --------------------------------------------------- //
 router.patch(
-  "/follow-requests/:userId",
+  "/friend-requests/:userId",
   middleware.authentication(),
-  middleware.validation(validators.takeAnActionToRequest),
+  middleware.validation(validators.takeAnActionToFriendRequest),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      const message = await us.actionToRequest({
+      const message = await us.actionToFriendRequest({
         params: req.validate.params,
         body: req.validate.body,
         user: req.user,
@@ -149,6 +152,7 @@ router.patch(
 // -------------------------------------------------- SHARE PROFILE --------------------------------------------------- //
 router.get(
   "/:userId/share-profile",
+  middleware.authentication(),
   middleware.validation(validators.shareProfile),
   middleware.responseFormatter(
     async (
@@ -156,7 +160,10 @@ router.get(
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      const user = await us.shareProfile({ params: req.validate.params });
+      const user = await us.shareProfile({
+        user: req.user,
+        params: req.validate.params,
+      });
 
       return { message: "success.userRetrieved", data: user };
     },
@@ -314,88 +321,68 @@ router.patch(
     },
   ),
 );
-// -------------------------------------------------- FOLLOW ACCOUNT --------------------------------------------------- //
+// -------------------------------------------------- SEND FRIEND REQUEST --------------------------------------------------- //
 router.post(
-  "/:userId/follow",
+  "/send-friend-request",
   middleware.authentication(),
-  middleware.validation(validators.followAccount),
+  middleware.validation(validators.sendFriendRequest),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      const follow = await us.followAccount({
+      const friendRequest = await us.sendFriendRequest({
         user: req.user,
-        params: req.validate.params,
+        body: req.validate.body,
       });
 
-      // private account → 202: the request was received but still waits for his approval
-      return follow.status == enums.FollowStatusEnum.PENDING
-        ? { status: 202, message: "success.followRequestSent", data: follow }
-        : { status: 201, message: "success.followed", data: follow };
+      return {
+        status: 201,
+        message: "success.friendRequestSent",
+        data: friendRequest,
+      };
     },
   ),
 );
-// -------------------------------------------------- UNFOLLOW ACCOUNT --------------------------------------------------- //
+// -------------------------------------------------- CANCEL FRIEND REQUEST --------------------------------------------------- //
 router.delete(
-  "/:userId/unfollow",
+  "/:userId/friend-request",
   middleware.authentication(),
-  middleware.validation(validators.unFollowAccount),
+  middleware.validation(validators.cancelFriendRequest),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      await us.unFollowAccount({
+      await us.cancelFriendRequest({
         user: req.user,
         params: req.validate.params,
       });
 
-      return { message: "success.unfollowed" };
+      return { message: "success.friendRequestCanceled" };
     },
   ),
 );
-// -------------------------------------------------- FOLLOWERS --------------------------------------------------- //
+// -------------------------------------------------- FRIENDS --------------------------------------------------- //
 router.get(
-  "/:userId/followers",
+  "/:userId/friends",
   middleware.authentication(),
-  middleware.validation(validators.getFollowers),
+  middleware.validation(validators.getFriends),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      const followers = await us.followers({
+      const friends = await us.friends({
         query: req.validate.query,
         params: req.validate.params,
         user: req.user,
       });
 
-      return { message: "success.followersRetrieved", data: followers };
-    },
-  ),
-);
-// -------------------------------------------------- FOLLOWINGS --------------------------------------------------- //
-router.get(
-  "/:userId/following",
-  middleware.authentication(),
-  middleware.validation(validators.getFollowings),
-  middleware.responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<itf.IResponse> => {
-      const followings = await us.following({
-        query: req.validate.query,
-        params: req.validate.params,
-        user: req.user,
-      });
-
-      return { message: "success.followingRetrieved", data: followings };
+      return { message: "success.friendsRetrieved", data: friends };
     },
   ),
 );
@@ -439,23 +426,23 @@ router.get(
     },
   ),
 );
-// -------------------------------------------------- REMOVE FOLLOWER --------------------------------------------------- //
+// -------------------------------------------------- REMOVE FRIEND --------------------------------------------------- //
 router.delete(
-  "/followers/:userId",
+  "/remove-friend/:userId",
   middleware.authentication(),
-  middleware.validation(validators.removeExistingFollower),
+  middleware.validation(validators.removeExistingFriend),
   middleware.responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
     ): Promise<itf.IResponse> => {
-      await us.removeExistingFollower({
+      await us.removeExistingFriend({
         user: req.user,
         params: req.validate.params,
       });
 
-      return { message: "success.followerRemoved" };
+      return { message: "success.friendRemoved" };
     },
   ),
 );

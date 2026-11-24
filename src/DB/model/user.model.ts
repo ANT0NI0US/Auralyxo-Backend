@@ -95,6 +95,7 @@ const userSchema = new mongoose.Schema<itf.IUser>(
       },
       default: enums.LanguageEnum.AR,
     },
+    friends: [{ type: mongoose.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

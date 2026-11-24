@@ -24,29 +24,24 @@ export type DeleteUserDto = z.infer<ReturnType<typeof validators.deleteUser>>;
 export type ToggleVisibilityDto = z.infer<
   ReturnType<typeof validators.toggleVisibility>
 >;
-// Follow / Unfollow
-export type FollowAccountDto = z.infer<
-  ReturnType<typeof validators.followAccount>
+// Friend requests
+export type SendFriendRequestDto = z.infer<
+  ReturnType<typeof validators.sendFriendRequest>
 >;
-export type UnFollowAccountDto = z.infer<
-  ReturnType<typeof validators.unFollowAccount>
+export type CancelFriendRequestDto = z.infer<
+  ReturnType<typeof validators.cancelFriendRequest>
 >;
-export type GetFollowersDto = z.infer<
-  ReturnType<typeof validators.getFollowers>
+export type GetFriendsDto = z.infer<ReturnType<typeof validators.getFriends>>;
+export type GetPendingFriendRequestsDto = z.infer<
+  ReturnType<typeof validators.getPendingFriendRequests>
 >;
-export type GetFollowingsDto = z.infer<
-  ReturnType<typeof validators.getFollowings>
->;
-export type GetFollowRequestsDto = z.infer<
-  ReturnType<typeof validators.getFollowRequests>
->;
-export type TakeAnActionToRequestDto = z.infer<
-  ReturnType<typeof validators.takeAnActionToRequest>
+export type TakeAnActionToFriendRequestDto = z.infer<
+  ReturnType<typeof validators.takeAnActionToFriendRequest>
 >;
 export type SearchUsersDto = z.infer<ReturnType<typeof validators.searchUsers>>;
 export type GetSuggestionsDto = z.infer<
   ReturnType<typeof validators.getSuggestions>
 >;
-export type RemoveExistingFollowerDto = z.infer<
-  ReturnType<typeof validators.removeExistingFollower>
+export type RemoveExistingFriendDto = z.infer<
+  ReturnType<typeof validators.removeExistingFriend>
 >;
